@@ -1,8 +1,9 @@
 #!/usr/bin/python
-
+from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
 import numpy as np
 import imageio.v3 as im
+
 
 # hash map and index each node
 # linked lists?
@@ -65,12 +66,17 @@ def NEW_CONFIGURATION(qNear, qRand, delta):
 
 def rrt_algo(qInit, K, delta, D):
 
-    plt.ion
+    plt.ion()
     fig, ax = plt.subplots()
 
-    plot = ax.scatter([],[])
+    plot = ax.scatter([],[], c='blue', marker='o', label='Points')
+    lines = LineCollection([], colors='blue', linewidths=(0.5,1,1.5,2),linestyle='solid')
     ax.set_xlim(0,D[0])
     ax.set_ylim(0,D[1])
+
+    xValues, yValues = [],[]
+
+    plt.draw()
 
     G_temp = {qInit: []}
     G.update(G_temp)
@@ -78,23 +84,17 @@ def rrt_algo(qInit, K, delta, D):
         qRand = RANDOM_CONFIGURATION(D)
         qNear = NEAREST_VERTEX(qRand,G)
         qNew = NEW_CONFIGURATION(qNear,qRand,delta)
-        # temp = G[qNear]
-        # G[qNear] = temp.append(qNew)
-        
-        # G[qNew] = list()
-
         G_temp = {qNew: []}
         G.update(G_temp)
-        # print(f"G[qNear]: {G[qNear]}")
 
-        # newPoint = np.array(qNew)
-
-        # array = plot.get_offsets()
-        # array = np.append(array,newPoint)
-        # plot.set_offsets(array)
+    #     # plot 
+        xValues.append(qNew[0])
+        yValues.append(qNew[1])
+        plot.set_offsets(np.column_stack([xValues,yValues]))
+        fig.canvas.draw_idle()
+        plt.pause(0.001)
         
-        # fig.canvas.draw()
-
+    plt.waitforbuttonpress()
     return G
 
 def calc_slope(point1, point2):
@@ -113,9 +113,7 @@ def main():
     xValues, yValues = zip(*nodes)
 
     plt.scatter(xValues,yValues,s=1)
-    # plt.plot(xValues,yValues)
     plt.show()
-
 
 
 if __name__ == "__main__":
