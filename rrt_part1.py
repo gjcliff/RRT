@@ -19,7 +19,7 @@ import imageio.v3 as im
 G = {} # this is the graph that will hold all the nodes
 delta = 1 # this is the incremental distance
 D = (100,100) # this is the domain
-qInit = (50,50)
+qInit = (D[0]/2,D[1]/2)
 K = 1000
 
 def RANDOM_CONFIGURATION(D):
@@ -69,12 +69,15 @@ def rrt_algo(qInit, K, delta, D):
     plt.ion()
     fig, ax = plt.subplots()
 
-    plot = ax.scatter([],[], c='blue', marker='o', label='Points')
-    lines = LineCollection([], colors='blue', linewidths=(0.5,1,1.5,2),linestyle='solid')
+    xValues, yValues, lines = [],[],[]
+
+    plot = ax.scatter([],[], c='blue',s=1)
+    line_segments = LineCollection(lines, colors='blue',linestyle='solid')
+    ax.add_collection(line_segments)
     ax.set_xlim(0,D[0])
     ax.set_ylim(0,D[1])
 
-    xValues, yValues = [],[]
+    
 
     plt.draw()
 
@@ -87,7 +90,10 @@ def rrt_algo(qInit, K, delta, D):
         G_temp = {qNew: []}
         G.update(G_temp)
 
-    #     # plot 
+        # plot 
+        lines.append([qNear,qNew])
+        line_segments.set_segments(lines)
+
         xValues.append(qNew[0])
         yValues.append(qNew[1])
         plot.set_offsets(np.column_stack([xValues,yValues]))
@@ -109,10 +115,7 @@ def main():
 
     G = rrt_algo(qInit, K, delta, D)
 
-    nodes = G.keys()
-    xValues, yValues = zip(*nodes)
-
-    plt.scatter(xValues,yValues,s=1)
+    plt.ioff()
     plt.show()
 
 
