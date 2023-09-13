@@ -1,6 +1,7 @@
 #!/usr/bin/python
 from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
+from matplotlib.patches import Circle
 import numpy as np
 import imageio.v3 as im
 
@@ -17,10 +18,10 @@ import imageio.v3 as im
 # what about [key: ((posx, posy), child, child)] and then the key can be a hashmap
 
 G = {} # this is the graph that will hold all the nodes
-delta = 5 # this is the incremental distance
+delta = 1 # this is the incremental distance
 D = (200,200) # this is the domain
 # qInit = [D[0]/2,D[1]/2]
-K = 1000
+K = 2000
 
 def RANDOM_CONFIGURATION(D):
     # Generates a random position in the domain (D).
@@ -38,17 +39,19 @@ def RANDOM_CONFIGURATION(D):
 def NEAREST_VERTEX(qRand, G): 
     # finds the vertex in that is closest to the given position using the Euclidean metric.
 
-    distance = max(D)
-
+    distance = D[0]*2
+    # print(f"distance: {distance}")
     qRand_temp = np.array(qRand)
 
-    qNear = tuple()
+    qNear = ()
     for k in G:
-        k_temp = np.array(k)
-        distance_temp = np.linalg.norm(k_temp - qRand_temp)
+        distance_temp = np.linalg.norm(np.asarray(k) - np.asarray(qRand))
+        # print(f"distance_temp: {distance_temp}")
         if distance_temp < distance:
             distance = distance_temp
             qNear = k
+    # print(G)
+    # print(f"qNear:{qNear}")
     return qNear
 
 def NEW_CONFIGURATION(qNear, qRand, delta):
@@ -68,22 +71,39 @@ def NEW_CONFIGURATION(qNear, qRand, delta):
 def checkCollision(qNew, qNear, obstacles):
     # this function will check to see if the line segment resulting from the newest point
     # collides with the walls of any of the obstacles.
-    qLine = createVectorFromTwoPoints(qNew, qNear) # returns a numpy array
+    qLine = createVectorFromTwoPoints(qNew, qNear) # create a numpy array representing a vector between the new node and the node closest to it.
 
     for key in obstacles:
-        x,y,r = obstacles[key]
-        oLine = createVectorFromTwoPoints((x,y),qNew)
+        x,y,r = obstacles[key] # retrieve the center point and radius for the obstacle
+        oLine = createVectorFromTwoPoints((x,y),qNew) # create a numpy array representing a vector between the center of the circle and the new node
 
+        # mag_qLine = np.linalg.norm(qNew, qNear) # find the magnitude of the array between the new node and the node closest to it.
+        # test = np.linalg.norm(qLine)
+        # mag_oLine = np.linalg.norm((x,y), qNew) # find the magnitude of the array between the new node and the node closest to it.
+
+        # dotProduct = np.dot(qLine, oLine) # find the dot product of the two arrays
+        # theta = np.arccos(dotProduct/(mag_qLine*mag_oLine)) # find the angle between the two arrays using the dot product and the magnitudes of the two arrays
+        # dist = mag_oLine*np.sin(theta) # use the angle to figure out the distance of the closest point on the line 
+
+        # calculate the distance between the center of the circular obstacle and the closest point on the line segment between 
+        # the new node and the closest node to it
+        # print(f"qLine type: {type(qLine)}, qLine: {qLine}")
+        # print(f"oLine type: {type(oLine)}, oLine: {oLine}")
+        # print(f"np.linalg.norm(oLine): {np.linalg.norm(oLine)}")
+        # print(f"np.cross(qLine,oLine): {np.cross(qLine,oLine)}")
+        dist = np.linalg.norm(np.cross(qLine,oLine))/np.linalg.norm(qLine)
+        # print(f"dist: {dist}")
+
+        if dist < r:
+            return True # if a collision is found, return true
+        
+    return False # if no collisions are found, return false
 
 def createVectorFromTwoPoints(point1, point2):
-    vector = []
     x1,y1 = point1
     x2,y2 = point2
     
-    vector[0] = x1-x2
-    vector[1] = y1-y2
-
-    vector = np.array(vector)
+    vector = [x1-x2,y1-y2]
 
     return vector
 
@@ -92,9 +112,7 @@ def rrt_algo(qInit, qGoal, K, delta, D):
     x, y, lines = [],[],[]
 
     fig, ax, plot, line_segments = draw_plots()
-    obstacles, ax = randomObstacles(ax, qInit, qGoal)
-
-
+    obstacles = randomObstacles(ax, qInit, qGoal)
     
     G.update({qInit: []})
     for i in range(K):
@@ -103,13 +121,16 @@ def rrt_algo(qInit, qGoal, K, delta, D):
             qRand = RANDOM_CONFIGURATION(D)
             qNear = NEAREST_VERTEX(qRand,G)
             qNew = NEW_CONFIGURATION(qNear,qRand,delta)
-            if not checkCollision(qNew, qNear, obstacles):
-                successful = True
+            collision = checkCollision(qNew, qNear, obstacles)
+            if not collision:
                 G.update({qNew: []})
-
+                successful = True
                 # these variables are needed for updating the plot
-                x, y, line_segments, lines, plot, fig = update_plots(x,y,line_segments,lines, plot, fig, qNew, qNear)
+                update_plots(x,y,line_segments,lines, plot, fig, qNew, qNear)
 
+    hmm = i
+    hmm2 = K
+    hmm3 = collision
     return G
 
 def draw_plots():
@@ -142,9 +163,7 @@ def update_plots(x,y,line_segments, lines, plot, fig, qNew, qNear):
     plot.set_offsets(np.column_stack([x,y])) # add the new x and y coordiantes to the plot
 
     fig.canvas.draw_idle() # update the canvas
-    plt.pause(0.00001) # pause momentarily so the plot doesn't freeze up
-
-    return x, y, line_segments, lines, plot, fig
+    plt.pause(0.00001) # pause momentarily so the plot doesn't freeze ups
 
 def randomStart():
     qInit = []
@@ -157,7 +176,7 @@ def randomObstacles(ax, qInit, qGoal):
     # add some circles
     rng = np.random.default_rng() # add the random number generator
 
-    numObstacles = 5
+    numObstacles = 20
     circles = {}
     obstacles = {}
     for i in range(numObstacles):
@@ -176,15 +195,15 @@ def randomObstacles(ax, qInit, qGoal):
             goalDist = np.linalg.norm(center - qGoal_temp)
 
             if startDist > r and goalDist > r:
-                circles[f"circles{i}"] = plt.Circle((x,y),r)
-                ax.add_artist(circles[f"circles{i}"])
+                circles[f"circles{i}"] = Circle((x,y),r)
+                ax.add_patch(circles[f"circles{i}"])
                 obstacles[f"o{i}"] = [x,y,r]
                 successful = True
-            else:
-                print("invalid cirle!")
+            # else:
+                # print("invalid cirle!")
         
 
-    return obstacles, ax
+    return obstacles
 
 def randomGoal():
     rng = np.random.default_rng()
@@ -200,7 +219,7 @@ def main():
     qInit = randomStart()
     qGoal = randomGoal()
     G = rrt_algo(qInit, qGoal, K, delta, D)
-
+    print(f"G: {G}")
     plt.ioff() #turn off interactive mode.
     plt.show() # this I don't understand. I might get rid of it, will test.
 
