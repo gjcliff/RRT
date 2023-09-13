@@ -19,10 +19,12 @@ import imageio.v3 as im
 G = {} # this is the graph that will hold all the nodes
 delta = 5 # this is the incremental distance
 D = (200,200) # this is the domain
-qInit = (D[0]/2,D[1]/2)
+# qInit = [D[0]/2,D[1]/2]
 K = 1000
 
 def RANDOM_CONFIGURATION(D):
+    # Generates a random position in the domain (D).
+
     rng = np.random.default_rng()
     
     x = rng.random()*D[0]
@@ -34,6 +36,7 @@ def RANDOM_CONFIGURATION(D):
     return qRand
 
 def NEAREST_VERTEX(qRand, G): 
+    # finds the vertex in that is closest to the given position using the Euclidean metric.
 
     distance = max(D)
 
@@ -49,6 +52,7 @@ def NEAREST_VERTEX(qRand, G):
     return qNear
 
 def NEW_CONFIGURATION(qNear, qRand, delta):
+    # generates a new configuraition in the tree by moving some distance, delta, from one vertex configuration towards another configuration
 
     xdir = qRand[0] - qNear[0]
     ydir = qRand[1] - qNear[1]
@@ -56,29 +60,55 @@ def NEW_CONFIGURATION(qNear, qRand, delta):
     theta = np.arctan2(ydir,xdir)
     xDiff = np.cos(theta) * delta
     yDiff = np.sin(theta) * delta
-    help = np.sin(theta)
 
     qNew = (qNear[0] + xDiff, qNear[1] + yDiff)
 
     return qNew
 
-def rrt_algo(qInit, K, delta, D):
+def checkCollision(qNew, qNear, obstacles):
+    # this function will check to see if the line segment resulting from the newest point
+    # collides with the walls of any of the obstacles.
+    qLine = createVectorFromTwoPoints(qNew, qNear) # returns a numpy array
+
+    for key in obstacles:
+        x,y,r = obstacles[key]
+        oLine = createVectorFromTwoPoints((x,y),qNew)
+
+
+def createVectorFromTwoPoints(point1, point2):
+    vector = []
+    x1,y1 = point1
+    x2,y2 = point2
+    
+    vector[0] = x1-x2
+    vector[1] = y1-y2
+
+    vector = np.array(vector)
+
+    return vector
+
+def rrt_algo(qInit, qGoal, K, delta, D):
 
     x, y, lines = [],[],[]
 
     fig, ax, plot, line_segments = draw_plots()
+    obstacles, ax = randomObstacles(ax, qInit, qGoal)
 
-    G_temp = {qInit: []}
-    G.update(G_temp)
+
+    
+    G.update({qInit: []})
     for i in range(K):
-        qRand = RANDOM_CONFIGURATION(D)
-        qNear = NEAREST_VERTEX(qRand,G)
-        qNew = NEW_CONFIGURATION(qNear,qRand,delta)
-        G_temp = {qNew: []}
-        G.update(G_temp)
+        successful = False
+        while not successful:
+            qRand = RANDOM_CONFIGURATION(D)
+            qNear = NEAREST_VERTEX(qRand,G)
+            qNew = NEW_CONFIGURATION(qNear,qRand,delta)
+            if not checkCollision(qNew, qNear, obstacles):
+                successful = True
+                G.update({qNew: []})
 
-        # these variables are needed for updating the plot
-        x, y, line_segments, lines, plot, fig = update_plots(x,y,line_segments,lines, plot, fig, qNew, qNear)
+                # these variables are needed for updating the plot
+                x, y, line_segments, lines, plot, fig = update_plots(x,y,line_segments,lines, plot, fig, qNew, qNear)
 
     return G
 
@@ -116,9 +146,60 @@ def update_plots(x,y,line_segments, lines, plot, fig, qNew, qNear):
 
     return x, y, line_segments, lines, plot, fig
 
-def main():
+def randomStart():
+    qInit = []
+    rng = np.random.default_rng()
+    qInit.append(rng.random() * D[0])
+    qInit.append(rng.random() * D[1])
+    return tuple(qInit)
 
-    G = rrt_algo(qInit, K, delta, D)
+def randomObstacles(ax, qInit, qGoal):
+    # add some circles
+    rng = np.random.default_rng() # add the random number generator
+
+    numObstacles = 5
+    circles = {}
+    obstacles = {}
+    for i in range(numObstacles):
+        successful = False
+
+        while not successful:
+
+            r = rng.integers(0,20)
+            x = rng.integers(20, D[0] - 20)
+            y = rng.integers(20, D[1] - 20)
+
+            qInit_temp = np.array(qInit)
+            qGoal_temp = np.array(qGoal)
+            center = np.array(x,y)
+            startDist = np.linalg.norm(center - qInit_temp)
+            goalDist = np.linalg.norm(center - qGoal_temp)
+
+            if startDist > r and goalDist > r:
+                circles[f"circles{i}"] = plt.Circle((x,y),r)
+                ax.add_artist(circles[f"circles{i}"])
+                obstacles[f"o{i}"] = [x,y,r]
+                successful = True
+            else:
+                print("invalid cirle!")
+        
+
+    return obstacles, ax
+
+def randomGoal():
+    rng = np.random.default_rng()
+
+    qGoal = []
+    qGoal.append(rng.integers(20, D[0] - 20))
+    qGoal.append(rng.integers(20, D[1] - 20))
+
+    return qGoal
+    
+
+def main():
+    qInit = randomStart()
+    qGoal = randomGoal()
+    G = rrt_algo(qInit, qGoal, K, delta, D)
 
     plt.ioff() #turn off interactive mode.
     plt.show() # this I don't understand. I might get rid of it, will test.
