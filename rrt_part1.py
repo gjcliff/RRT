@@ -17,8 +17,8 @@ import imageio.v3 as im
 # what about [key: ((posx, posy), child, child)] and then the key can be a hashmap
 
 G = {} # this is the graph that will hold all the nodes
-delta = 1 # this is the incremental distance
-D = (100,100) # this is the domain
+delta = 5 # this is the incremental distance
+D = (200,200) # this is the domain
 qInit = (D[0]/2,D[1]/2)
 K = 1000
 
@@ -50,8 +50,6 @@ def NEAREST_VERTEX(qRand, G):
 
 def NEW_CONFIGURATION(qNear, qRand, delta):
 
-    # slope = calc_slope(qRand, qNear)
-
     xdir = qRand[0] - qNear[0]
     ydir = qRand[1] - qNear[1]
 
@@ -66,20 +64,9 @@ def NEW_CONFIGURATION(qNear, qRand, delta):
 
 def rrt_algo(qInit, K, delta, D):
 
-    plt.ion()
-    fig, ax = plt.subplots()
+    x, y, lines = [],[],[]
 
-    xValues, yValues, lines = [],[],[]
-
-    plot = ax.scatter([],[], c='blue',s=1)
-    line_segments = LineCollection(lines, colors='blue',linestyle='solid')
-    ax.add_collection(line_segments)
-    ax.set_xlim(0,D[0])
-    ax.set_ylim(0,D[1])
-
-    
-
-    plt.draw()
+    fig, ax, plot, line_segments = draw_plots()
 
     G_temp = {qInit: []}
     G.update(G_temp)
@@ -90,34 +77,53 @@ def rrt_algo(qInit, K, delta, D):
         G_temp = {qNew: []}
         G.update(G_temp)
 
-        # plot 
-        lines.append([qNear,qNew])
-        line_segments.set_segments(lines)
+        # these variables are needed for updating the plot
+        x, y, line_segments, lines, plot, fig = update_plots(x,y,line_segments,lines, plot, fig, qNew, qNear)
 
-        xValues.append(qNew[0])
-        yValues.append(qNew[1])
-        plot.set_offsets(np.column_stack([xValues,yValues]))
-        fig.canvas.draw_idle()
-        plt.pause(0.001)
-        
-    plt.waitforbuttonpress()
     return G
 
-def calc_slope(point1, point2):
-    x1, y1 = point1
-    x2, y2 = point2
+def draw_plots():
+    # this function creates the scatter plot, line collection, and defines some of
+    # their attributes.
 
-    slope = (y1 - y2) / (x1 - x2)
+    plt.ion() # turn on interactive mode
+    fig, ax = plt.subplots() # create the sub plot
 
-    return slope
+    plot = ax.scatter([],[], c='blue',s=1) # create the scatter plot
+    line_segments = LineCollection([], colors='blue',linestyle='solid')
+    ax.add_collection(line_segments)
+    ax.set_xlim(0,D[0])
+    ax.set_ylim(0,D[1])
+
+    plt.draw()
+
+    return fig, ax, plot, line_segments
+    
+
+def update_plots(x,y,line_segments, lines, plot, fig, qNew, qNear):
+    # this function is meant to be called in each iteration of the for lloop inside
+    # rrf_algo(). It updates the plot with new nodes as they're generated.
+
+    lines.append([qNear,qNew]) # adding the new point, and the point it was closest to, to the lines list so that a line can be drawn on the plot
+    line_segments.set_segments(lines) # adding the new line to the plot
+
+    x.append(qNew[0]) # add the x coordinate of the new point to the x coordinate list
+    y.append(qNew[1]) # add the y coordinate of the new point to the y coordinate list
+    plot.set_offsets(np.column_stack([x,y])) # add the new x and y coordiantes to the plot
+
+    fig.canvas.draw_idle() # update the canvas
+    plt.pause(0.00001) # pause momentarily so the plot doesn't freeze up
+
+    return x, y, line_segments, lines, plot, fig
 
 def main():
 
     G = rrt_algo(qInit, K, delta, D)
 
-    plt.ioff()
-    plt.show()
+    plt.ioff() #turn off interactive mode.
+    plt.show() # this I don't understand. I might get rid of it, will test.
 
+    # add some kind of dynamic element??
 
 if __name__ == "__main__":
     main()
