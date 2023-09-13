@@ -45,7 +45,7 @@ def NEAREST_VERTEX(qRand, G):
 
     qNear = ()
     for k in G:
-        distance_temp = np.linalg.norm(np.asarray(k) - np.asarray(qRand))
+        distance_temp = np.linalg.norm(np.asarray(qRand) - np.asarray(k))
         # print(f"distance_temp: {distance_temp}")
         if distance_temp < distance:
             distance = distance_temp
@@ -73,45 +73,6 @@ def NEW_CONFIGURATION(qNear, qRand, delta):
     # qNew = (qNear[0] + xDiff, qNear[1] + yDiff)
 
     return qNew
-
-def checkCollision(qNew, qNear, obstacles):
-    # this function will check to see if the line segment resulting from the newest point
-    # collides with the walls of any of the obstacles.
-    qLine = createVectorFromTwoPoints(qNew, qNear) # create a numpy array representing a vector between the new node and the node closest to it.
-
-    for key in obstacles:
-        x,y,r = obstacles[key] # retrieve the center point and radius for the obstacle
-        oLine = createVectorFromTwoPoints(qNew,(x,y)) # create a numpy array representing a vector between the center of the circle and the new node
-
-        # mag_qLine = np.linalg.norm(qNew, qNear) # find the magnitude of the array between the new node and the node closest to it.
-        # test = np.linalg.norm(qLine)
-        # mag_oLine = np.linalg.norm((x,y), qNew) # find the magnitude of the array between the new node and the node closest to it.
-
-        # dotProduct = np.dot(qLine, oLine) # find the dot product of the two arrays
-        # theta = np.arccos(dotProduct/(mag_qLine*mag_oLine)) # find the angle between the two arrays using the dot product and the magnitudes of the two arrays
-        # dist = mag_oLine*np.sin(theta) # use the angle to figure out the distance of the closest point on the line 
-
-        # calculate the distance between the center of the circular obstacle and the closest point on the line segment between 
-        # the new node and the closest node to it
-        # print(f"qLine type: {type(qLine)}, qLine: {qLine}")
-        # print(f"oLine type: {type(oLine)}, oLine: {oLine}")
-        # print(f"np.linalg.norm(oLine): {np.linalg.norm(oLine)}")
-        # print(f"np.cross(qLine,oLine): {np.cross(qLine,oLine)}")
-        dist = np.linalg.norm(np.cross(qLine,oLine))/np.linalg.norm(qLine)
-        # print(f"dist: {dist}")
-
-        if dist < r:
-            return True # if a collision is found, return true
-        
-    return False # if no collisions are found, return false
-
-def createVectorFromTwoPoints(point1, point2):
-    x1,y1 = point1
-    x2,y2 = point2
-    
-    vector = [x1-x2,y1-y2]
-
-    return vector
 
 def draw_plots(qGoal):
     # this function creates the scatter plot, line collection, and defines some of
@@ -193,6 +154,26 @@ def randomGoal():
     qGoal.append(rng.integers(20, D[1] - 20))
 
     return qGoal
+
+def checkCollision(qNew, qNear, obstacles):
+    # this function will check to see if the line segment resulting from the newest point
+    # collides with the walls of any of the obstacles.
+    qLine = np.subtract(qNew, qNear) # create a numpy array representing a vector between the new node and the node closest to it.
+
+    unitQ = np.linalg.norm(qLine)
+
+    for key in obstacles:
+        x,y,r = obstacles[key] # retrieve the center point and radius for the obstacle
+        oLine = np.subtract((x,y),qNear) # create a numpy array representing a vector between the center of the circle and the new node
+        # unitO = np.linalg.norm(oLine)
+
+        dist = np.linalg.norm(np.cross(qLine,oLine))/unitQ
+        # print(f"dist: {dist}, r: {r}, dist < r: {dist < r}")/
+
+        if dist < r and np.dot(qLine, oLine) > 0:
+            return True # if a collision is found, return true
+        
+    return False # if no collisions are found, return false
     
 def rrt_algo(qInit, qGoal, K, delta, D):
 
@@ -208,6 +189,7 @@ def rrt_algo(qInit, qGoal, K, delta, D):
             qRand = RANDOM_CONFIGURATION(D)
             qNear = NEAREST_VERTEX(qRand,G)
             qNew = NEW_CONFIGURATION(qNear,qRand,delta)
+            # print("qNew:")
             collision = checkCollision(qNew, qNear, obstacles)
             if not collision:
                 G[qNear].append(qNew)
@@ -215,9 +197,12 @@ def rrt_algo(qInit, qGoal, K, delta, D):
                 successful = True
                 # these variables are needed for updating the plot
                 update_plots(x,y,line_segments,lines, plot, fig, qNew, qNear)
-            goalCollision = checkCollision(qGoal, qNew, obstacles)
+
+            # print("qGoal: ")
+            qNear = NEAREST_VERTEX(qGoal,G)
+            goalCollision = checkCollision(qGoal, qNear, obstacles)
             if not goalCollision:
-                update_plots(x,y,line_segments,lines,plot,fig,qGoal,qNew)
+                update_plots(x,y,line_segments,lines,plot,fig,qGoal,qNear)
                 return G
     return G
 
@@ -227,7 +212,7 @@ def main():
     G = rrt_algo(qInit, qGoal, K, delta, D)
     # print(f"G: {G}")
     plt.ioff() #turn off interactive mode.
-    plt.show() # this I don't understand. I might get rid of it, will test.
+    plt.show()
 
     # add some kind of dynamic element??
 
