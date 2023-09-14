@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import numpy as np
 import imageio.v3 as im
+import time
 
 
 # hash map and index each node
@@ -100,7 +101,6 @@ def update_plots(x,y,line_segments, lines, plot, fig, qNew, qNear):
 
     lines.append([qNear,qNew]) # adding the new point, and the point it was closest to, to the lines list so that a line can be drawn on the plot
     line_segments.set_segments(lines) # adding the new line to the plot
-
     x.append(qNew[0]) # add the x coordinate of the new point to the x coordinate list
     y.append(qNew[1]) # add the y coordinate of the new point to the y coordinate list
     plot.set_offsets(np.column_stack([x,y])) # add the new x and y coordiantes to the plot
@@ -155,7 +155,7 @@ def randomGoal():
 
     return qGoal
 
-def checkCollision(qNew, qNear, obstacles):
+def checkCollision(qNew, qNear, obstacles, lines, line_segments, fig):
     # this function will check to see if the line segment resulting from the newest point
     # collides with the walls of any of the obstacles.
     qLine = np.subtract(qNew, qNear) # create a numpy array representing a vector between the new node and the node closest to it.
@@ -169,6 +169,15 @@ def checkCollision(qNew, qNear, obstacles):
 
         dist = np.linalg.norm(np.cross(qLine,oLine))/unitQ
         # print(f"dist: {dist}, r: {r}, dist < r: {dist < r}")/
+
+        lines.append([qNear,qNew]) # adding the new point, and the point it was closest to, to the lines list so that a line can be drawn on the plot
+        lines.append([(x,y), qNear])
+        line_segments.set_segments(lines) # adding the new line to the plot
+
+        fig.canvas.draw_idle() # update the canvas
+        plt.pause(0.00001) # pause momentarily so the plot doesn't freeze ups
+
+        time.sleep(5)
 
         if dist < r and np.dot(qLine, oLine) > 0:
             return True # if a collision is found, return true
@@ -190,7 +199,7 @@ def rrt_algo(qInit, qGoal, K, delta, D):
             qNear = NEAREST_VERTEX(qRand,G)
             qNew = NEW_CONFIGURATION(qNear,qRand,delta)
             # print("qNew:")
-            collision = checkCollision(qNew, qNear, obstacles)
+            collision = checkCollision(qNew, qNear, obstacles, lines, line_segments, fig)
             if not collision:
                 G[qNear].append(qNew)
                 G.update({qNew: []})
@@ -200,7 +209,7 @@ def rrt_algo(qInit, qGoal, K, delta, D):
 
             # print("qGoal: ")
             qNear = NEAREST_VERTEX(qGoal,G)
-            goalCollision = checkCollision(qGoal, qNear, obstacles)
+            goalCollision = checkCollision(qGoal, qNear, obstacles, lines, line_segments, fig)
             if not goalCollision:
                 update_plots(x,y,line_segments,lines,plot,fig,qGoal,qNear)
                 return G
