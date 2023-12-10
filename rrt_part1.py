@@ -116,7 +116,7 @@ class RRT():
         fig.canvas.draw_idle()  # update the canvas
         plt.pause(0.00001)  # pause momentarily so the plot doesn't freeze up
 
-    def checkCollision(self, qThere, qHere, obstacles):
+    def checkCollision(self, qThere, qHere, obstacles, flag):
         '''
         Check to see if there is a collision.
 
@@ -128,12 +128,13 @@ class RRT():
         qThere: Point that is somewhere else.
         qHere: Point that is right where we're located.
         obstacles: A list of the positions of obstacles.
+        flag (int): whether or not the obstacle type is a matplotlib
+        shape or an image.
         '''
         qLine = np.subtract(qThere, qHere)
 
         qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
 
-        i = 0
         for key in obstacles:
             # retrieve the center point and radius for the obstacle
             x, y, r = obstacles[key]
@@ -147,7 +148,6 @@ class RRT():
             dist = np.linalg.norm(np.cross(oLine, qLine)) / qDistance
 
             dot_product = np.dot(qLine, oLine)
-            i += 1
 
             if dist < r and dot_product > 0 and qDistance > oDistance - r:
                 return True  # if a collision is found, return true
@@ -205,9 +205,14 @@ class RRT():
         return obstacles
 
     def load_image_binary(self, ax, qGoal):
-        image = cv2.imread("N_map.png", cv2.IMREAD_COLOR)
+        image = cv2.imread("N_map.png", cv2.IMREAD_GRAYSCALE)
+        image = np.flipud(image)
 
-        ax.imshow(image, origin='lower')
+        contours, _ = cv2.find
+
+        ax.imshow(image, cmap='gray', origin='upper')
+
+        return image
 
     def rrt_algo(self, qInit, qGoal):
         x, y, lines = [], [], []
@@ -229,8 +234,6 @@ class RRT():
                 )
                 if not goalCollision:
 
-                    qReverse = qNew
-
                     self.G.update({qNew: [qNear]})
                     self.update_plots(x, y, line_segments,
                                       lines, plot, fig, qNew, qNear)
@@ -248,6 +251,8 @@ class RRT():
                     self.G.update({qNew: [qNear]})
                     self.update_plots(x, y, line_segments,
                                       lines, plot, fig, qNew, qNear)
+
+            plt.show()
 
 
 def main():
