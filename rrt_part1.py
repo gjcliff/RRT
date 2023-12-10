@@ -4,12 +4,6 @@ from matplotlib.patches import Circle
 import numpy as np
 import cv2
 
-# G = {}  # this is the graph that will hold all the nodes
-# delta = 3  # this is the incremental distance
-# D = (200, 200)  # this is the domain
-# # qInit = [D[0]/2,D[1]/2]
-# K = 1000
-
 
 class RRT():
     def __init__(self):
@@ -25,7 +19,7 @@ class RRT():
 
         Args:
         ----
-            - D: the domain space.
+        D (int tuple): the domain space.
         '''
         rng = np.random.default_rng()
 
@@ -38,7 +32,8 @@ class RRT():
 
     def NEAREST_VERTEX(self, qRand):
         '''
-        Finds the vertex in that is closest to the given position using the Euclidean metric.
+        Finds the vertex in that is closest to the given position using the
+        Euclidean metric.
 
         Args:
         ----
@@ -59,7 +54,8 @@ class RRT():
 
     def NEW_CONFIGURATION(self, qNear, qRand):
         '''
-        Generate a new node in the tree by moving a distance "delta" from node qNear towards qRand
+        Generate a new node in the tree by moving a distance "delta" from node
+        qNear towards qRand
         '''
         # generates a new configuraition in the tree by moving some distance,d
         # delta, from one vertex configuration towards another configuration
@@ -71,17 +67,21 @@ class RRT():
 
         # qNew = tuple(np.add(qNear, np.multiply(unitVector, delta)))
 
-        # have to cast to tuple type or else the object will be numpy array, which is unhashable
+        # have to cast to tuple type or else the object will be numpy array,
+        # which is unhashable
         # and this element will be a key in the G dictionary.
         qNew = tuple(qNear + unitVector * self.delta)
 
         return qNew
 
     def draw_plots(self, qGoal):
-        # this function creates the scatter plot, line collection, and defines some of their attributes.
+        # this function creates the scatter plot, line collection, and defines
+        # some of their attributes.
 
         plt.ion()  # turn on interactive mode
         fig, ax = plt.subplots()  # create the sub plot
+
+        ax.imshow
 
         plot = ax.scatter([], [], c="blue", s=1)  # create the scatter plot
         goal = ax.scatter([qGoal[0]], [qGoal[1]], c="red", s=3)
@@ -98,7 +98,8 @@ class RRT():
 
     def update_plots(self, x, y, line_segments, lines, plot, fig, qNew, qNear):
         # this function is meant to be called in each iteration of the for loop
-        # inside rrf_algo(). It updates the plot with new nodes as they're generated.
+        # inside rrt_algo(). It updates the plot with new nodes as they're
+        # generated.
 
         # adding the new point, and the point it was
         lines.append([qNear, qNew])
@@ -115,77 +116,38 @@ class RRT():
         fig.canvas.draw_idle()  # update the canvas
         plt.pause(0.00001)  # pause momentarily so the plot doesn't freeze up
 
-    def checkGoalCollision(self, qThere, qHere, obstacles):
-        # this function will check to see if the line segment resulting from the newest point
-        # collides with the walls of any of the obstacles.
-        # qLine = np.subtract(
-        #     qHere, qNearz``
-        # )  # create a numpy array representing a vector between the new node and the node closest to it.
-        qLine = np.subtract(qThere, qHere)
-
-        qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
-
-        print("==========================================")
-        i = 0
-        for key in obstacles:
-            # retrieve the center point and radius for the obstacle
-            x, y, r = obstacles[key]
-            oDistance = np.linalg.norm(np.asarray((x, y)) - np.asarray(qHere))
-
-            # create a numpy array representing a vector between the center of the circle and the new node
-            oLine = np.subtract(np.asarray((x, y)), np.asarray(qHere))
-
-            dist = np.linalg.norm(np.cross(oLine, qLine)) / qDistance
-
-            dot_product = np.dot(qLine, oLine)
-            i += 1
-
-            print(f"i: {i}")
-            print(f"qDistance: {qDistance}")
-            print(f"oDistance: {oDistance}")
-            print(f"qHere: {qHere}")
-            print(f"r: {r}, x,y: {x}, {y}")
-            print(f"dist: {dist}")
-            print(f"np.dot: {np.dot(qLine, oLine)}")
-
-            if dist < r and dot_product > 0 and qDistance > oDistance:
-                return True  # if a collision is found, return true
-
-        return False  # if no collisions are found, return fals
-
     def checkCollision(self, qThere, qHere, obstacles):
-        # this function will check to see if the line segment resulting from the newest point
-        # collides with the walls of any of the obstacles.
-        # qLine = np.subtract(
-        #     qThere, qHere
-        # )  # create a numpy array representing a vector between the new node and the node closest to it.
+        '''
+        Check to see if there is a collision.
+
+        Check to see if there is a collision with an obstacle between
+        qThere and qHere, both of which are points in the graph.
+
+        Args:
+        ----
+        qThere: Point that is somewhere else.
+        qHere: Point that is right where we're located.
+        obstacles: A list of the positions of obstacles.
+        '''
         qLine = np.subtract(qThere, qHere)
 
         qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
 
         i = 0
         for key in obstacles:
-            # time.sleep(0.5)
             # retrieve the center point and radius for the obstacle
             x, y, r = obstacles[key]
 
             oDistance = np.linalg.norm(np.asarray((x, y)) - np.asarray(qHere))
 
-            # create a numpy array representing a vector between the center of the circle and the new node
+            # create a numpy array representing a vector between the center of
+            # the circle and the new node
             oLine = np.subtract((x, y), qHere)
 
             dist = np.linalg.norm(np.cross(oLine, qLine)) / qDistance
 
             dot_product = np.dot(qLine, oLine)
             i += 1
-
-            # print(f"i: {i}")
-            # print(f"qDistance: {qDistance}")
-            # print(f"oDistance: {oDistance}")
-            # print(f"qHere: {qHere}")
-            # print(f"r: {r}, x,y: {x}, {y}")
-            # print(f"dist: {dist}")
-            # print(f"np.dot: {np.dot(qLine, oLine)}")
 
             if dist < r and dot_product > 0 and qDistance > oDistance - r:
                 return True  # if a collision is found, return true
@@ -203,6 +165,16 @@ class RRT():
 
         return qInit
 
+    def randomGoal(self):
+        rng = np.random.default_rng()
+
+        x = rng.integers(20, self.D[0] - 20)
+        y = rng.integers(20, self.D[1] - 20)
+
+        qGoal = (x, y)
+
+        return qGoal
+
     def randomObstacles(self, ax, qInit, qGoal):
         # add some circles
         rng = np.random.default_rng()  # add the random number generator
@@ -217,6 +189,7 @@ class RRT():
                 r = rng.integers(0, 20)
                 x = rng.integers(20, self.D[0] - 20)
                 y = rng.integers(20, self.D[1] - 20)
+        # _, binary_image = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY
 
                 center = [x, y]
                 startDist = np.linalg.norm(
@@ -231,41 +204,17 @@ class RRT():
                     successful = True
         return obstacles
 
-    def randomGoal(self):
-        rng = np.random.default_rng()
+    def load_image_binary(self, ax, qGoal):
+        image = cv2.imread("N_map.png", cv2.IMREAD_COLOR)
 
-        x = rng.integers(20, self.D[0] - 20)
-        y = rng.integers(20, self.D[1] - 20)
-
-        qGoal = (x, y)
-
-        return qGoal
-
-    def load_image_binary(self, qGoal):
-        image = cv2.imread("nu_image.png", 0)
-        _, binary_image = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY)
-
-        plt.ion()  # turn on interactive mode
-        fig, ax = plt.subplots()  # create the sub plot
-
-        plot = ax.scatter([], [], c="blue", s=1)  # create the scatter plot
-        goal = ax.scatter([qGoal[0]], [qGoal[1]], c="red", s=3)
-        # goal.set_offsets(np.column_stack([,y])) # add the new x and y
-        # coordiantes to the plot
-        line_segments = LineCollection([], colors="blue", linestyle="solid")
-        ax.add_collection(line_segments)
-        ax.set_xlim(0, self.D[0])
-        ax.set_ylim(0, self.D[1])
-
-        plt.draw()
-
-        return fig, ax, plot, line_segments
+        ax.imshow(image, origin='lower')
 
     def rrt_algo(self, qInit, qGoal):
         x, y, lines = [], [], []
 
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
         obstacles = self.randomObstacles(ax, qInit, qGoal)
+        self.load_image_binary(ax, qGoal)
 
         self.G.update({qInit: []})
         for i in range(self.K):
@@ -275,22 +224,28 @@ class RRT():
                 qNear = self.NEAREST_VERTEX(qRand)
                 qNew = self.NEW_CONFIGURATION(qNear, qRand)
 
-                goalCollision = self.checkGoalCollision(
-                    qGoal, qNear, obstacles
+                goalCollision = self.checkCollision(
+                    qGoal, qNew, obstacles
                 )
                 if not goalCollision:
+
+                    qReverse = qNew
+
+                    self.G.update({qNew: [qNear]})
                     self.update_plots(x, y, line_segments,
-                                      lines, plot, fig, qGoal, qNear)
+                                      lines, plot, fig, qNew, qNear)
+                    self.update_plots(x, y, line_segments,
+                                      lines, plot, fig, qGoal, qNew)
+
                     return self.G
-                # print("qNew:")
+
                 collision = self.checkCollision(
                     qNew, qNear, obstacles
                 )
+
                 if not collision:
-                    self.G[qNear].append(qNew)
-                    self.G.update({qNew: []})
-                    successful = True
-                    # these variables are needed for updating the plot
+
+                    self.G.update({qNew: [qNear]})
                     self.update_plots(x, y, line_segments,
                                       lines, plot, fig, qNew, qNear)
 
