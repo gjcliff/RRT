@@ -85,8 +85,6 @@ class RRT():
         plt.ion()  # turn on interactive mode
         fig, ax = plt.subplots()  # create the sub plot
 
-        ax.imshow
-
         plot = ax.scatter([], [], c="blue", s=1)  # create the scatter plot
         goal = ax.scatter([qGoal[0]], [qGoal[1]], c="red", s=3)
         # goal.set_offsets(np.column_stack([,y])) # add the new x and y
@@ -186,8 +184,8 @@ class RRT():
             return False  # if no collisions are found, return false
 
         else:
-            for i in range(len(obstacles[1:])):
-                print(f"i: {i}")
+            for i in range(1, len(obstacles)):
+                # print(f"i: {i}")
 
                 point_slope_valid = self.test_slope(qHere, qThere)
                 obstacle_slope_valid = self.test_slope(
@@ -208,23 +206,23 @@ class RRT():
                     # where that vertical line is and check whether or not the
                     # obstacle line intersetcts with it.
 
-                    # point_eqn = (qThere[1] - qHere[1])/(qThere[0] -
-                    #                                     qHere[0]) * x + qHere[1]  # y = mx+b
-                    # point_eqn_lamb = sym.lambdify([x], point_eqn)
-                    # point_eqn_ans = point_eqn_lamb(obstacles[i][0])
-
                     # the x position of the first and second point in the obstacle are the same
                     x = obstacles[i][0]
 
                     point_eqn = (qThere[1] - qHere[1])/(qThere[0] -
                                                         qHere[0]) * x + qHere[1]  # y = mx+b
-                    # print(f"piont eqn: {point_eqn}")
-                    # print(f"plug in obstacles[i][0]: {obstacles[i][0]}")
+
+                    # print(f"qHere: {qHere}")
+                    # print(f"qThere: {qThere}")
+                    # print(f"obstacles[i-1]: {obstacles[i-1]}")
+                    # print(f"obstacles[i]: {obstacles[i]}")
+                    # print("")
+
+                    # print(f"point_eqn: {point_eqn}")
                     # print(f"obstacles[i-1][1]: {obstacles[i-1][1]}")
-                    # print(f"piont eqn ans: {point_eqn_ans}")
                     # print(f"obstacles[i][1]: {obstacles[i][1]}")
-                    # print(f"")
-                    # print(f"")
+                    # print("\n\n")
+
                     if obstacles[i-1][1] <= point_eqn <= obstacles[i][1]\
                             or obstacles[i][1] <= point_eqn <= obstacles[i-1][1]:
                         print("collision")
@@ -234,18 +232,6 @@ class RRT():
                         continue
 
                 elif not point_slope_valid:
-
-                    # if the line from qHere to qThere is a vertical line,
-                    # find the x coordinate where that vertical line is and
-                    # check whether or not the obstacle line intersetcts with it.
-
-                    # obstacle_eqn = (obstacles[i-1][1] - obstacles[i][1]) / \
-                    #     (obstacles[i-1][0] - obstacles[i][0]) * \
-                    #     x + obstacles[i-1][1]
-                    # print(f"obstacle eqn: {obstacle_eqn}")
-
-                    # obstacle_eqn_lamb = sym.lambdify([x], obstacle_eqn)
-                    # obstacle_eqn_ans = obstacle_eqn_lamb(qHere[i][0])
 
                     x = qHere[0]
 
@@ -267,11 +253,6 @@ class RRT():
 
                     continue
 
-                # point_eqn = (qThere[1] - qHere[1])/(qThere[0] -
-                #                                     qHere[0]) * x + qHere[1]  # y = mx+b
-                # obstacle_eqn = (obstacles[i-1][1] - obstacles[i][1]) / (obstacles[i-1][0] - obstacles[i][0]) * \
-                #     x + obstacles[i-1][1]
-
                 m1 = (qThere[1] - qHere[1])/(qThere[0] - qHere[0])
                 m2 = (obstacles[i-1][1] - obstacles[i][1]) / \
                     (obstacles[i-1][0] - obstacles[i][0])
@@ -281,15 +262,10 @@ class RRT():
 
                 x = (b2 - b1)/(m1 - m2)
 
-                # eqn = sym.Eq(point_eqn, obstacle_eqn)
-                # soln = sym.solve(eqn, x, dict=True)
-
-                # intersection_x_coord = sym.N(soln[0][x])
+                print("here")
 
                 if qHere[0] <= x <= qThere[0] or qThere[0] <= x <= qHere[0]:
                     return True
-
-                print("")
 
             return False
 
@@ -297,17 +273,15 @@ class RRT():
 
         rng = np.random.default_rng()
 
-        x = rng.integers(20, self.D[0] - 20)
-        y = rng.integers(20, self.D[1] - 20)
+        x, y = rng.integers(20, self.D[0] - 20, size=2)
 
         print(f"shape: {np.shape(image)}")
 
-        while image[int(x)][int(y)] == 0:
-            x = rng.integers(20, self.D[0] - 20)
-            y = rng.integers(20, self.D[1] - 20)
+        while image[y][x] == 0:
+            x, y = rng.integers(20, self.D[0] - 20, size=2)
 
-        print(f"value of start: {image[int(x)][int(y)]}")
-        print(f"x: {x}, y: {y}")
+        print(f"value of start: {image[y][x]}")
+        print(f"x: {y}, y: {x}")
 
         qInit = (x, y)
 
@@ -316,14 +290,13 @@ class RRT():
     def randomGoal(self, image):
         rng = np.random.default_rng()
 
-        x = rng.integers(20, self.D[0] - 20)
-        y = rng.integers(20, self.D[1] - 20)
+        x, y = rng.integers(20, self.D[0] - 20, size=2)
 
-        while image[int(x)][int(y)] == 0:
-            x = rng.integers(20, self.D[0] - 20)
-            y = rng.integers(20, self.D[1] - 20)
+        while image[y][x] == 0:
+            print("hello")
+            x, y = rng.integers(20, self.D[0] - 20, size=2)
 
-        print(f"value of goal: {image[int(x)][int(y)]}")
+        print(f"value of goal: {image[y][x]}")
         print(f"x: {x}, y: {y}")
 
         qGoal = (x, y)
@@ -361,7 +334,6 @@ class RRT():
 
     def load_image_binary(self):
         image = cv2.imread("N_map.png", cv2.IMREAD_GRAYSCALE)
-        image = np.flipud(image)
 
         image_scaled = cv2.resize(
             image, (self.D[0], self.D[1]), interpolation=cv2.INTER_NEAREST)
@@ -374,15 +346,15 @@ class RRT():
     def rrt_algo(self):
         x, y, lines = [], [], []
 
-        contours, image = self.load_image_binary()
+        contours, image_scaled = self.load_image_binary()
 
-        qInit = self.randomStart(image)
-        qGoal = self.randomGoal(image)
+        qInit = self.randomStart(image_scaled)
+        qGoal = self.randomGoal(image_scaled)
 
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
         # obstacles = self.randomObstacles(ax, qInit, qGoal)
 
-        ax.imshow(image, cmap='gray', origin='upper')
+        ax.imshow(image_scaled, cmap='gray', origin='upper')
 
         self.G.update({qInit: []})
         for i in range(self.K):
