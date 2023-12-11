@@ -2,6 +2,7 @@ from matplotlib.collections import LineCollection
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
 import numpy as np
+import sympy as sym
 import cv2
 
 
@@ -12,6 +13,10 @@ class RRT():
         self.D = (200, 200)  # this is the domain
         # qInit = (self.D[0]/2, D[1]/2)
         self.K = 1000
+
+        # flags
+        self.IMAGE = 0
+        self.MATPLOTLIB = 1
 
     def RANDOM_CONFIGURATION(self):
         '''
@@ -37,8 +42,8 @@ class RRT():
 
         Args:
         ----
-            - qRand (list): a random position in the domain.
-            - G (list): the list of nodes in the domain.
+        qRand (list): a random position in the domain.
+        G (list): the list of nodes in the domain.
         '''
         # longest possible distance
         distance = np.linalg.norm(np.asarray(self.D) - np.asarray((0, 0)))
@@ -101,6 +106,10 @@ class RRT():
         # inside rrt_algo(). It updates the plot with new nodes as they're
         # generated.
 
+        # x = []
+        # y = []
+        # lines = []
+
         # adding the new point, and the point it was
         lines.append([qNear, qNew])
         # closest to, to the lines list so that a line can be drawn on the plot
@@ -116,6 +125,25 @@ class RRT():
         fig.canvas.draw_idle()  # update the canvas
         plt.pause(0.00001)  # pause momentarily so the plot doesn't freeze up
 
+    def test_slope(self, point1, point2):
+        """
+        Test whether the slope between the two points is infinity.
+
+        If the slope between the two points is infinity, return False
+        to indicate that the slope is invalid. If the slope is non-zero,
+        then return True to indicate that the slope is valid.
+
+        Args:
+        ----
+        point1 (tuple): The start point of a line segment.
+        point2 (tuple): The end point of a line segment.
+
+        """
+        if point2[0] == point1[0]:
+            return False
+        else:
+            return True
+
     def checkCollision(self, qThere, qHere, obstacles, flag):
         '''
         Check to see if there is a collision.
@@ -130,29 +158,103 @@ class RRT():
         obstacles: A list of the positions of obstacles.
         flag (int): whether or not the obstacle type is a matplotlib
         shape or an image.
+
         '''
         qLine = np.subtract(qThere, qHere)
 
         qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
 
-        for key in obstacles:
-            # retrieve the center point and radius for the obstacle
-            x, y, r = obstacles[key]
+        if flag:
 
-            oDistance = np.linalg.norm(np.asarray((x, y)) - np.asarray(qHere))
+            for key in obstacles:
+                # retrieve the center point and radius for the obstacle
+                x, y, r = obstacles[key]
 
-            # create a numpy array representing a vector between the center of
-            # the circle and the new node
-            oLine = np.subtract((x, y), qHere)
+                oDistance = np.linalg.norm(
+                    np.asarray((x, y)) - np.asarray(qHere))
 
-            dist = np.linalg.norm(np.cross(oLine, qLine)) / qDistance
+                # create a numpy array representing a vector between the center of
+                # the circle and the new node
+                oLine = np.subtract((x, y), qHere)
 
-            dot_product = np.dot(qLine, oLine)
+                dist = np.linalg.norm(np.cross(oLine, qLine)) / qDistance
 
-            if dist < r and dot_product > 0 and qDistance > oDistance - r:
-                return True  # if a collision is found, return true
+                dot_product = np.dot(qLine, oLine)
 
-        return False  # if no collisions are found, return false
+                if dist < r and dot_product > 0 and qDistance > oDistance - r:
+                    return True  # if a collision is found, return true
+
+            return False  # if no collisions are found, return false
+
+        else:
+            for i in range(len(obstacles[1:])):
+
+                point_slope_valid = self.test_slope(qHere, qThere)
+                obstacle_slope_valid = self.test_slope(
+                    obstacles[i], obstacles[i-1])
+                x = sym.symbols('x')
+
+                if not point_slope_valid and not obstacle_slope_valid:
+
+                    # if both the obstacle slope and the slope between the
+                    # points at qHere and qThere are vertical, then they
+                    # do not intersect and we can move on to the next obstacle.
+
+                    break
+
+                elif not obstacle_slope_valid:
+
+                    # if the obstacle is a vertical line,find the x coordinate
+                    # where that vertical line is and check whether or not the
+                    # obstacle line intersetcts with it.
+
+                    point_eqn = (qThere[1] - qHere[1])/(qThere[0] -
+                                                        qHere[0]) * x + qHere[1]  # y = mx+b
+                    point_eqn_lamb = sym.lambdify([x], point_eqn)
+                    point_eqn_ans = point_eqn_lamb(obstacles[i][0])
+                    if obstacles[i-1][1] <= point_eqn_ans <= obstacles[i][1]\
+                            or obstacles[i][1] <= point_eqn_ans <= obstacles[i-1][1]:
+
+                        return True
+
+                elif not point_slope_valid:
+
+                    # if the line from qHere to qThere is a vertical line,
+                    # find the x coordinate where that vertical line is and
+                    # check whether or not the obstacle line intersetcts with it.
+
+                    obstacle_eqn = (obstacles[i-1][1] - obstacles[i][1]) / \
+                        (obstacles[i-1][0] - obstacles[i][0]) * \
+                        x + obstacles[i-1][1]
+                    obstacle_eqn_lamb = sym.lambdify([x], obstacle_eqn)
+                    obstacle_eqn_ans = obstacle_eqn_lamb(qHere[i][0])
+                    if qHere[i][1] <= obstacle_eqn_ans <= qThere[i][1] or qThere[i][1] <= obstacle_eqn_ans <= qThere[i][1]:
+
+                        return True
+
+                if (qThere[1] - qHere[1])/(qThere[0] - qHere[0]) == (obstacles[i-1][1] - obstacles[i][1]):
+
+                    # if the slopes of the obstacle and the line between qHere
+                    # and qThere are equal, then they do not intersect and we
+                    # can move on to the next obstacle.
+
+                    break
+
+                point_eqn = (qThere[1] - qHere[1])/(qThere[0] -
+                                                    qHere[0]) * x + qHere[1]  # y = mx+b
+                obstacle_eqn = (obstacles[i-1][1] - obstacles[i][1]) / \
+                    (obstacles[i-1][0] - obstacles[i][0]) * \
+                    x + obstacles[i-1][1]
+
+                eqn = sym.Eq(point_eqn, obstacle_eqn)
+                soln = sym.solve(eqn)
+
+                intersection_x_coord = sym.N(soln[x])
+
+                if qHere[0] <= intersection_x_coord <= qThere[0] or qThere[0] <= intersection_x_coord <= qHere[0]:
+                    return True
+
+            return False
 
     def randomStart(self):
 
@@ -204,53 +306,60 @@ class RRT():
                     successful = True
         return obstacles
 
-    def load_image_binary(self, ax, qGoal):
+    def load_image_binary(self, ax):
         image = cv2.imread("N_map.png", cv2.IMREAD_GRAYSCALE)
         image = np.flipud(image)
 
-        contours, _ = cv2.find
+        image_scaled = cv2.resize(
+            image, (self.D[0], self.D[1]), interpolation=cv2.INTER_NEAREST)
 
-        ax.imshow(image, cmap='gray', origin='upper')
+        contours, _ = cv2.findContours(
+            image_scaled, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+        # print(contours[0][:, 0, :])
 
-        return image
+        ax.imshow(image_scaled, cmap='gray', origin='upper')
+
+        return contours[0][:, 0, :]
 
     def rrt_algo(self, qInit, qGoal):
         x, y, lines = [], [], []
 
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
         obstacles = self.randomObstacles(ax, qInit, qGoal)
-        self.load_image_binary(ax, qGoal)
+        contours = self.load_image_binary(ax)
 
         self.G.update({qInit: []})
         for i in range(self.K):
-            successful = False
-            while not successful:
-                qRand = self.RANDOM_CONFIGURATION()
-                qNear = self.NEAREST_VERTEX(qRand)
-                qNew = self.NEW_CONFIGURATION(qNear, qRand)
 
-                goalCollision = self.checkCollision(
-                    qGoal, qNew, obstacles
-                )
-                if not goalCollision:
+            # successful = False
+            # while not successful:
 
-                    self.G.update({qNew: [qNear]})
-                    self.update_plots(x, y, line_segments,
-                                      lines, plot, fig, qNew, qNear)
-                    self.update_plots(x, y, line_segments,
-                                      lines, plot, fig, qGoal, qNew)
+            qRand = self.RANDOM_CONFIGURATION()
+            qNear = self.NEAREST_VERTEX(qRand)
+            qNew = self.NEW_CONFIGURATION(qNear, qRand)
 
-                    return self.G
+            goalCollision = self.checkCollision(
+                qGoal, qNew, contours, self.IMAGE
+            )
+            if not goalCollision:
 
-                collision = self.checkCollision(
-                    qNew, qNear, obstacles
-                )
+                self.G.update({qNew: [qNear]})
+                self.update_plots(x, y, line_segments,
+                                  lines, plot, fig, qNew, qNear)
+                self.update_plots(x, y, line_segments,
+                                  lines, plot, fig, qGoal, qNew)
 
-                if not collision:
+                return self.G
 
-                    self.G.update({qNew: [qNear]})
-                    self.update_plots(x, y, line_segments,
-                                      lines, plot, fig, qNew, qNear)
+            collision = self.checkCollision(
+                qNew, qNear, contours, self.IMAGE
+            )
+
+            if not collision:
+
+                self.G.update({qNew: [qNear]})
+                self.update_plots(x, y, line_segments,
+                                  lines, plot, fig, qNew, qNear)
 
             plt.show()
 
