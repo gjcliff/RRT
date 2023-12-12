@@ -11,7 +11,7 @@ class RRT():
         self.G = {}  # this is the graph that will hold all the nodes
         self.delta = 3  # this is the incremental distance
         self.D = (200, 200)  # this is the domain
-        self.K = 1000
+        self.K = 10000
 
         # flags
         self.IMAGE = 0
@@ -185,7 +185,7 @@ class RRT():
 
         else:
             for i in range(1, len(obstacles)):
-                print(f"i: {i}")
+                # print(f"i: {i}")
 
                 point_slope_valid = self.test_slope(qHere, qThere)
                 obstacle_slope_valid = self.test_slope(
@@ -217,9 +217,8 @@ class RRT():
                     obstacle_x = obstacles[i-1][0]
                     obstacle_y = m * obstacle_x + b  # y = mx+b
 
-                    if obstacles[i-1][1] < obstacle_y < obstacles[i][1]\
-                            or obstacles[i][1] < obstacle_y < obstacles[i-1][1]:
-
+                    if (qHere[1] < obstacle_y < qThere[1] or qThere[1] < obstacle_y < qHere[1]) and (obstacles[i-1][1] < obstacle_y < obstacles[i][1] or obstacles[i][1] < obstacle_y < obstacles[i-1][1]):
+                        print("COLLISOIN TRUE")
                         print("OBSTACLE STRAIGHT UP")
                         print(f"qHere: {qHere}")
                         print(f"qThere: {qThere}")
@@ -228,12 +227,25 @@ class RRT():
                         print("\n")
 
                         print(f"obstacle_y: {obstacle_y}")
-                        print(f"obstacles[i-1][1]: {obstacles[i-1][1]}")
-                        print(f"obstacles[i][1]: {obstacles[i][1]}")
+                        print(f"qHere[1]: {qHere[1]}")
+                        print(f"qThere[1]: {qThere[1]}")
                         print("\n\n")
+
                         return True
 
                     else:
+                        print("COLLISOIN FALSE")
+                        print("OBSTACLE STRAIGHT UP")
+                        print(f"qHere: {qHere}")
+                        print(f"qThere: {qThere}")
+                        print(f"obstacles[i-1]: {obstacles[i-1]}")
+                        print(f"obstacles[i]: {obstacles[i]}")
+                        print("\n")
+
+                        print(f"obstacle_y: {obstacle_y}")
+                        print(f"qHere[1]: {qHere[1]}")
+                        print(f"qThere[1]: {qThere[1]}")
+                        print("\n\n")
                         continue
 
                 elif not point_slope_valid:
@@ -248,18 +260,18 @@ class RRT():
                     qx = qHere[0]
                     qy = m * qx + b
 
-                    if qHere[1] < qy < qThere[i][1] or qThere[1] < qy < qHere[i-1][1]:
-                        print("piont STRAIGHT UP")
-                        print(f"qHere: {qHere}")
-                        print(f"qThere: {qThere}")
-                        print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        print(f"obstacles[i]: {obstacles[i]}")
-                        print("\n")
+                    if obstacles[i-1][1] < qy < obstacles[i][1] or obstacles[i][1] < qy < obstacles[i-1][1]:
+                        # print("piont STRAIGHT UP")
+                        # print(f"qHere: {qHere}")
+                        # print(f"qThere: {qThere}")
+                        # print(f"obstacles[i-1]: {obstacles[i-1]}")
+                        # print(f"obstacles[i]: {obstacles[i]}")
+                        # print("\n")
 
-                        print(f"qy: {qy}")
-                        print(f"qHere[i][1]: {qHere[i][1]}")
-                        print(f"qThere[i][1]: {qThere[i][1]}")
-                        print("\n\n")
+                        # print(f"qy: {qy}")
+                        # print(f"qHere[i][1]: {qHere[i][1]}")
+                        # print(f"qThere[i][1]: {qThere[i][1]}")
+                        # print("\n\n")
                         return True
 
                     else:
@@ -290,8 +302,11 @@ class RRT():
                 x = (b_obstacle - b_q)/(m_q - m_obstacle)
                 y = m_q * x_q + b_q
 
-                if qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0] and\
-                        qHere[1] < y < qThere[1] or qThere[1] < y < qHere[1]:
+                if (qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]) or\
+                        (qHere[1] < y < qThere[1] or qThere[1] < y < qHere[1]):
+
+                    return True
+                else:
                     print("NORMAL")
                     print(
                         f"qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]: {qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]}")
@@ -308,7 +323,6 @@ class RRT():
                     print(f"x: {x}")
                     print(f"y: {y}")
                     print("\n")
-                    return True
 
             return False
 
@@ -384,10 +398,16 @@ class RRT():
         contours, _ = cv2.findContours(
             image_scaled, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-        print(f"contours: {contours}")
-        print(f"contours: {contours[0][:,0,:]}")
+        # print(f"contours: {contours}")
+        # print(f"contours: {contours[0][:,0,:]}")
 
-        return contours[0][:, 0, :], image_scaled
+        contours = contours[0][:, 0, :]
+        print(f"contours: {contours}")
+        # contours = np.append(contours, contours[-1])
+        # contours = np.append(contours, contours[0])
+
+        contours = np.vstack([contours, contours[0]])
+        return contours, image_scaled
 
     def rrt_algo(self):
         x, y, lines = [], [], []
@@ -400,15 +420,17 @@ class RRT():
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
         # obstacles = self.randomObstacles(ax, qInit, qGoal)
 
-        # for i in range(1, len(contours)):
+        for i in range(1, len(contours)):
 
-        #     lines.append([(contours[i][0], contours[i][1]),
-        #                   (contours[i-1][0], contours[i-1][1])])
-        #     # closest to, to the lines list so that a line can be drawn on the plot
-        #     # adding the new line to the plot
-        #     line_segments.set_segments(lines)
+            print(contours)
 
-        #     fig.canvas.draw_idle()  # update the canvas
+            lines.append([(contours[i][0], contours[i][1]),
+                          (contours[i-1][0], contours[i-1][1])])
+            # closest to, to the lines list so that a line can be drawn on the plot
+            # adding the new line to the plot
+            line_segments.set_segments(lines)
+
+            fig.canvas.draw_idle()  # update the canvas
 
         ax.imshow(image_scaled, cmap='gray', origin='upper')
 
@@ -422,6 +444,7 @@ class RRT():
             qNear = self.NEAREST_VERTEX(qRand)
             qNew = self.NEW_CONFIGURATION(qNear, qRand)
 
+            print("goal collision")
             goalCollision = self.checkCollision(
                 qGoal, qNew, contours, self.IMAGE
             )
@@ -434,20 +457,16 @@ class RRT():
                                   lines, plot, fig, qGoal, qNew)
 
                 return self.G
-
+            print("local collision")
             collision = self.checkCollision(
                 qNew, qNear, contours, self.IMAGE
             )
-
-            print(collision)
 
             if not collision:
 
                 self.G.update({qNew: [qNear]})
                 self.update_plots(x, y, line_segments,
                                   lines, plot, fig, qNew, qNear)
-
-            print("FDJSKA;LFJDSA;KLFDSA")
 
             plt.pause(0.001)
 
