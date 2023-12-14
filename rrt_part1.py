@@ -11,7 +11,7 @@ class RRT():
         self.G = {}  # this is the graph that will hold all the nodes
         self.delta = 3  # this is the incremental distance
         self.D = (200, 200)  # this is the domain
-        self.K = 10000
+        self.K = 1000
 
         # flags
         self.IMAGE = 0
@@ -234,18 +234,18 @@ class RRT():
                         return True
 
                     else:
-                        print("COLLISOIN FALSE")
-                        print("OBSTACLE STRAIGHT UP")
-                        print(f"qHere: {qHere}")
-                        print(f"qThere: {qThere}")
-                        print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        print(f"obstacles[i]: {obstacles[i]}")
-                        print("\n")
+                        # print("COLLISOIN FALSE")
+                        # print("OBSTACLE STRAIGHT UP")
+                        # print(f"qHere: {qHere}")
+                        # print(f"qThere: {qThere}")
+                        # print(f"obstacles[i-1]: {obstacles[i-1]}")
+                        # print(f"obstacles[i]: {obstacles[i]}")
+                        # print("\n")
 
-                        print(f"obstacle_y: {obstacle_y}")
-                        print(f"qHere[1]: {qHere[1]}")
-                        print(f"qThere[1]: {qThere[1]}")
-                        print("\n\n")
+                        # print(f"obstacle_y: {obstacle_y}")
+                        # print(f"qHere[1]: {qHere[1]}")
+                        # print(f"qThere[1]: {qThere[1]}")
+                        # print("\n\n")
                         continue
 
                 elif not point_slope_valid:
@@ -302,11 +302,9 @@ class RRT():
                 x = (b_obstacle - b_q)/(m_q - m_obstacle)
                 y = m_q * x_q + b_q
 
-                if (qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]) or\
+                if (qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]) and\
                         (qHere[1] < y < qThere[1] or qThere[1] < y < qHere[1]):
 
-                    return True
-                else:
                     print("NORMAL")
                     print(
                         f"qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]: {qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]}")
@@ -323,6 +321,8 @@ class RRT():
                     print(f"x: {x}")
                     print(f"y: {y}")
                     print("\n")
+
+                    return True
 
             return False
 
