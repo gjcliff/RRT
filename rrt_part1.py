@@ -209,32 +209,16 @@ class RRT():
                     # the x position of the first and second point in the obstacle are the same
                     x = qHere[0]
                     y = qHere[1]
-                    m = (qThere[1] - qHere[1])/(qThere[0] -
-                                                qHere[0])
+                    m = (qThere[1] - qHere[1])/(qThere[0] - qHere[0])
 
                     b = y - m * x
 
                     obstacle_x = obstacles[i-1][0]
                     obstacle_y = m * obstacle_x + b  # y = mx+b
 
-                    if (qHere[1] < obstacle_y < qThere[1] or qThere[1] < obstacle_y < qHere[1]) and (obstacles[i-1][1] < obstacle_y < obstacles[i][1] or obstacles[i][1] < obstacle_y < obstacles[i-1][1]):
-                        print("COLLISOIN TRUE")
-                        print("OBSTACLE STRAIGHT UP")
-                        print(f"qHere: {qHere}")
-                        print(f"qThere: {qThere}")
-                        print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        print(f"obstacles[i]: {obstacles[i]}")
-                        print("\n")
-
-                        print(f"obstacle_y: {obstacle_y}")
-                        print(f"qHere[1]: {qHere[1]}")
-                        print(f"qThere[1]: {qThere[1]}")
-                        print("\n\n")
-
-                        return True
-
-                    else:
-                        # print("COLLISOIN FALSE")
+                    if min(obstacles[i][1], obstacles[i-1][1]) <= obstacle_y <= max(obstacles[i][1], obstacles[i-1][1])\
+                            and min(qThere[1], qHere[1]) <= obstacle_y <= max(qThere[1], qHere[1]):
+                        # print("COLLISOIN TRUE")
                         # print("OBSTACLE STRAIGHT UP")
                         # print(f"qHere: {qHere}")
                         # print(f"qThere: {qThere}")
@@ -246,6 +230,22 @@ class RRT():
                         # print(f"qHere[1]: {qHere[1]}")
                         # print(f"qThere[1]: {qThere[1]}")
                         # print("\n\n")
+
+                        return True
+
+                    else:
+                        print("COLLISOIN FALSE")
+                        print("OBSTACLE STRAIGHT UP")
+                        print(f"qHere: {qHere}")
+                        print(f"qThere: {qThere}")
+                        print(f"obstacles[i-1]: {obstacles[i-1]}")
+                        print(f"obstacles[i]: {obstacles[i]}")
+                        print("\n")
+
+                        print(f"obstacle_y: {obstacle_y}")
+                        print(f"qHere[1]: {qHere[1]}")
+                        print(f"qThere[1]: {qThere[1]}")
+                        print("\n\n")
                         continue
 
                 elif not point_slope_valid:
@@ -260,7 +260,9 @@ class RRT():
                     qx = qHere[0]
                     qy = m * qx + b
 
-                    if obstacles[i-1][1] < qy < obstacles[i][1] or obstacles[i][1] < qy < obstacles[i-1][1]:
+                    if min(obstacles[i][1], obstacles[i-1][1]) <= qy <= max(obstacles[i][1], obstacles[i-1][1])\
+                            and min(qThere[1], qHere[1]) <= qy <= max(qThere[1], qHere[1]):
+
                         # print("piont STRAIGHT UP")
                         # print(f"qHere: {qHere}")
                         # print(f"qThere: {qThere}")
@@ -300,29 +302,37 @@ class RRT():
                 b_q = y_q - m_q * x_q
 
                 x = (b_obstacle - b_q)/(m_q - m_obstacle)
-                y = m_q * x_q + b_q
+                y = m_q * x + b_q
 
-                if (qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]) and\
-                        (qHere[1] < y < qThere[1] or qThere[1] < y < qHere[1]):
+                if min(qThere[0], qHere[0]) <= x <= max(qThere[0], qHere[0])\
+                    and min(qThere[1], qHere[1]) <= y <= max(qThere[1], qHere[1])\
+                        and min(obstacles[i][0], obstacles[i-1][0]) <= x <= max(obstacles[i][0], obstacles[i-1][0])\
+                    and min(obstacles[i][1], obstacles[i-1][1]) <= y <= max(obstacles[i][1], obstacles[i-1][1]):
 
-                    print("NORMAL")
-                    print(
-                        f"qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]: {qHere[0] < x < qThere[0] or qThere[0] < x < qHere[0]}")
-                    print(
-                        f"qHere[1] < y < qThere[1] or qThere[1] < y < qHere[1]: {qHere[1] < y < qThere[1] or qThere[1] < y < qHere[1]}")
+                    # print("NORMAL COLLISION")
+                    # print(f"qHere: {qHere}")
+                    # print(f"qThere: {qThere}")
+                    # print(f"obstacles[i-1]: {obstacles[i-1]}")
+                    # print(f"obstacles[i]: {obstacles[i]}")
+                    # print("\n\n")
+
+                    # print(f"x: {x}")
+                    # print(f"y: {y}")
+                    # print("\n")
+
+                    return True
+
+                else:
+                    print("no NORMAL COLLISION")
                     print(f"qHere: {qHere}")
                     print(f"qThere: {qThere}")
                     print(f"obstacles[i-1]: {obstacles[i-1]}")
                     print(f"obstacles[i]: {obstacles[i]}")
                     print("\n\n")
 
-                    print(f"qHere[0]: {qHere[0]}")
-                    print(f"qThere[0]: {qThere[0]}")
                     print(f"x: {x}")
                     print(f"y: {y}")
                     print("\n")
-
-                    return True
 
             return False
 
@@ -395,19 +405,20 @@ class RRT():
         image_scaled = cv2.resize(
             image, (self.D[0], self.D[1]), interpolation=cv2.INTER_NEAREST)
 
+        image_flipped = cv2.flip(image_scaled, 1)
+
         contours, _ = cv2.findContours(
-            image_scaled, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
+            image_flipped, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
         # print(f"contours: {contours}")
         # print(f"contours: {contours[0][:,0,:]}")
 
         contours = contours[0][:, 0, :]
-        print(f"contours: {contours}")
         # contours = np.append(contours, contours[-1])
         # contours = np.append(contours, contours[0])
 
         contours = np.vstack([contours, contours[0]])
-        return contours, image_scaled
+        return contours, image_flipped
 
     def rrt_algo(self):
         x, y, lines = [], [], []
@@ -421,8 +432,6 @@ class RRT():
         # obstacles = self.randomObstacles(ax, qInit, qGoal)
 
         for i in range(1, len(contours)):
-
-            print(contours)
 
             lines.append([(contours[i][0], contours[i][1]),
                           (contours[i-1][0], contours[i-1][1])])
