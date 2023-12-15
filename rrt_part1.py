@@ -400,7 +400,7 @@ class RRT():
         return obstacles
 
     def load_image_binary(self):
-        image = cv2.imread("N_map.png", cv2.IMREAD_GRAYSCALE)
+        image = cv2.imread("pics/N_map.png", cv2.IMREAD_GRAYSCALE)
 
         image_scaled = cv2.resize(
             image, (self.D[0], self.D[1]), interpolation=cv2.INTER_NEAREST)
