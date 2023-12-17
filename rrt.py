@@ -506,9 +506,9 @@ def initialize_arg_parse():
         description='Process arguements to decide the type of obstacle the RRT\
             algorithm will have to search around, and in some cases the number\
                 of obstacles.')
-    parser.add_argument('-m', '--mode', metavar='N', type=int,
+    parser.add_argument('-m', '--mode', type=int, metavar='',
                         default=0, help='an integer to define the mode')
-    parser.add_argument('-o', '--obstacles', metavar='O', type=int,
+    parser.add_argument('-o', '--obstacles', type=int, metavar='',
                         default=20, help='an integer to define the number of obstacles')
 
     return parser
