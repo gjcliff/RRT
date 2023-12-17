@@ -5,17 +5,18 @@ import numpy as np
 import sympy as sym
 import cv2
 
+import sys
+
 
 class RRT():
-    def __init__(self):
+    def __init__(self, mode=0, num_obs=1):
         self.G = {}  # this is the graph that will hold all the nodes
         self.delta = 3  # this is the incremental distance
         self.D = (200, 200)  # this is the domain
         self.K = 1000
 
-        # flags
-        self.IMAGE = 0
-        self.MATPLOTLIB = 1
+        self.mode = mode
+        self.num_obs = num_obs
 
     def RANDOM_CONFIGURATION(self):
         '''
@@ -160,6 +161,8 @@ class RRT():
         qLine = np.subtract(qThere, qHere)
 
         qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
+
+        print(f"flag: {flag}")
 
         if flag:
 
@@ -336,35 +339,32 @@ class RRT():
 
             return False
 
-    def randomStart(self, image):
+    def randomStart(self, image=None):
 
         rng = np.random.default_rng()
 
         x, y = rng.integers(20, self.D[0] - 20, size=2)
 
-        print(f"shape: {np.shape(image)}")
-
-        while image[y][x] == 0:
+        if self.mode:
             x, y = rng.integers(20, self.D[0] - 20, size=2)
-
-        print(f"value of start: {image[y][x]}")
-        print(f"x: {y}, y: {x}")
+        else:
+            while image[y][x] == 0:
+                x, y = rng.integers(20, self.D[0] - 20, size=2)
 
         qInit = (x, y)
 
         return qInit
 
-    def randomGoal(self, image):
+    def randomGoal(self, image=None):
         rng = np.random.default_rng()
 
         x, y = rng.integers(20, self.D[0] - 20, size=2)
 
-        while image[y][x] == 0:
-            print("hello")
+        if self.mode:
             x, y = rng.integers(20, self.D[0] - 20, size=2)
-
-        print(f"value of goal: {image[y][x]}")
-        print(f"x: {x}, y: {y}")
+        else:
+            while image[y][x] == 0:
+                x, y = rng.integers(20, self.D[0] - 20, size=2)
 
         qGoal = (x, y)
 
@@ -374,7 +374,7 @@ class RRT():
         # add some circles
         rng = np.random.default_rng()  # add the random number generator
 
-        numObstacles = 20
+        numObstacles = self.num_obs
         circles = {}
         obstacles = {}
         for i in range(numObstacles):
@@ -423,18 +423,24 @@ class RRT():
     def rrt_algo(self):
         x, y, lines = [], [], []
 
-        contours, image_scaled = self.load_image_binary()
+        if not self.mode:
+            obstacles, image_scaled = self.load_image_binary()
+            qInit = self.randomStart(image_scaled)
+            qGoal = self.randomGoal(image_scaled)
 
-        qInit = self.randomStart(image_scaled)
-        qGoal = self.randomGoal(image_scaled)
+        else:
+            qInit = self.randomStart()
+            qGoal = self.randomGoal()
+
+        if self.mode:
+            obstacles = self.randomObstacles(ax, qInit, qGoal)
 
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
-        # obstacles = self.randomObstacles(ax, qInit, qGoal)
 
-        for i in range(1, len(contours)):
+        for i in range(1, len(obstacles)):
 
-            lines.append([(contours[i][0], contours[i][1]),
-                          (contours[i-1][0], contours[i-1][1])])
+            lines.append([(obstacles[i][0], obstacles[i][1]),
+                          (obstacles[i-1][0], obstacles[i-1][1])])
             # closest to, to the lines list so that a line can be drawn on the plot
             # adding the new line to the plot
             line_segments.set_segments(lines)
@@ -455,7 +461,7 @@ class RRT():
 
             print("goal collision")
             goalCollision = self.checkCollision(
-                qGoal, qNew, contours, self.IMAGE
+                qGoal, qNew, obstacles, self.mode
             )
             if not goalCollision:
 
@@ -468,7 +474,7 @@ class RRT():
                 return self.G
             print("local collision")
             collision = self.checkCollision(
-                qNew, qNear, contours, self.IMAGE
+                qNew, qNear, obstacles, self.mode
             )
 
             if not collision:
@@ -482,7 +488,7 @@ class RRT():
 
 def main():
 
-    rrt = RRT()
+    rrt = RRT(int(sys.argv[1]), int(sys.argv[2]))
 
     try:
         rrt.rrt_algo()
