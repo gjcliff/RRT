@@ -7,9 +7,9 @@ A link to his original paper is [here](https://msl.cs.illinois.edu/~lavalle/pape
 
 A Rapidly-Exploring Random Tree (RRT) is a fundamental path planning algorithm in robotics.
 
-An RRT consists of a set of vertices, which represent configurations in some domain D and edges, which connect two vertices. The algorithm randomly builds a tree in such a way that as the number of vertices n increases to \\\( \infty \\\), the vertices are uniformly distributed across the domain \\\(D \subset R^n \\\).
+An RRT consists of a set of vertices, which represent configurations in some domain D and edges, which connect two vertices. The algorithm randomly builds a tree in such a way that as the number of vertices n increases to $\infty$, the vertices are uniformly distributed across the domain $D \subset R^n$.
 
-The algorithm, as presented below, has been simplified from the original version by assuming a robot with dynamics \\\( \dot{q} = u \\\) where \\\(\lVert u \rVert = 1 \\\) and assuming that we integrate the robot's position forward for \\\(\Delta{t} = 1 \\\).
+The algorithm, as presented below, has been simplified from the original version by assuming a robot with dynamics $ \dot{q} = u$ where $\lVert u \rVert = 1$ and assuming that we integrate the robot's position forward for $\Delta{t} = 1$.
 
 ## How to Run
 To run the file, navigate to the directory where the script is stored and run:
