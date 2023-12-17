@@ -6,6 +6,7 @@ import sympy as sym
 import cv2
 
 import sys
+import argparse
 
 
 class RRT():
@@ -17,6 +18,8 @@ class RRT():
 
         self.mode = mode
         self.num_obs = num_obs
+
+        self.precision = 10
 
     def RANDOM_CONFIGURATION(self):
         '''
@@ -104,10 +107,6 @@ class RRT():
         # inside rrt_algo(). It updates the plot with new nodes as they're
         # generated.
 
-        # x = []
-        # y = []
-        # lines = []
-
         # adding the new point, and the point it was
         lines.append([qNear, qNew])
         # closest to, to the lines list so that a line can be drawn on the plot
@@ -168,6 +167,7 @@ class RRT():
 
             for key in obstacles:
                 # retrieve the center point and radius for the obstacle
+                print(f"obstaclces[key]: {obstacles[key]}")
                 x, y, r = obstacles[key]
 
                 oDistance = np.linalg.norm(
@@ -219,8 +219,8 @@ class RRT():
                     obstacle_x = obstacles[i-1][0]
                     obstacle_y = m * obstacle_x + b  # y = mx+b
 
-                    if min(obstacles[i][1], obstacles[i-1][1]) <= obstacle_y <= max(obstacles[i][1], obstacles[i-1][1])\
-                            and min(qThere[1], qHere[1]) <= obstacle_y <= max(qThere[1], qHere[1]):
+                    if min(obstacles[i][1], obstacles[i-1][1]) <= round(obstacle_y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1])\
+                            and min(qThere[1], qHere[1]) <= round(obstacle_y, self.precision) <= max(qThere[1], qHere[1]):
                         # print("COLLISOIN TRUE")
                         # print("OBSTACLE STRAIGHT UP")
                         # print(f"qHere: {qHere}")
@@ -263,8 +263,8 @@ class RRT():
                     qx = qHere[0]
                     qy = m * qx + b
 
-                    if min(obstacles[i][1], obstacles[i-1][1]) <= qy <= max(obstacles[i][1], obstacles[i-1][1])\
-                            and min(qThere[1], qHere[1]) <= qy <= max(qThere[1], qHere[1]):
+                    if min(obstacles[i][1], obstacles[i-1][1]) <= round(qy, self.precision) <= max(obstacles[i][1], obstacles[i-1][1])\
+                            and min(qThere[1], qHere[1]) <= round(qy, self.precision) <= max(qThere[1], qHere[1]):
 
                         # print("piont STRAIGHT UP")
                         # print(f"qHere: {qHere}")
@@ -307,10 +307,10 @@ class RRT():
                 x = (b_obstacle - b_q)/(m_q - m_obstacle)
                 y = m_q * x + b_q
 
-                if min(qThere[0], qHere[0]) <= x <= max(qThere[0], qHere[0])\
-                    and min(qThere[1], qHere[1]) <= y <= max(qThere[1], qHere[1])\
-                        and min(obstacles[i][0], obstacles[i-1][0]) <= x <= max(obstacles[i][0], obstacles[i-1][0])\
-                    and min(obstacles[i][1], obstacles[i-1][1]) <= y <= max(obstacles[i][1], obstacles[i-1][1]):
+                if min(qThere[0], qHere[0]) <= round(x, self.precision) <= max(qThere[0], qHere[0])\
+                    and min(qThere[1], qHere[1]) <= round(y, self.precision) <= max(qThere[1], qHere[1])\
+                        and min(obstacles[i][0], obstacles[i-1][0]) <= round(x, self.precision) <= max(obstacles[i][0], obstacles[i-1][0])\
+                    and min(obstacles[i][1], obstacles[i-1][1]) <= round(y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1]):
 
                     # print("NORMAL COLLISION")
                     # print(f"qHere: {qHere}")
@@ -377,6 +377,15 @@ class RRT():
         numObstacles = self.num_obs
         circles = {}
         obstacles = {}
+
+        # # new
+        # for i in range(numObstacles):
+        #     r = rng.integers(0, 20)
+        #     x = rng.integers(20, self.D[0] - 20)
+        #     y = rng.integers(20, self.D[1] - 20)
+
+        #     obstacles.append([x, y, r])
+
         for i in range(numObstacles):
             successful = False
 
@@ -384,7 +393,6 @@ class RRT():
                 r = rng.integers(0, 20)
                 x = rng.integers(20, self.D[0] - 20)
                 y = rng.integers(20, self.D[1] - 20)
-        # _, binary_image = cv2.threshold(image, 128, 255, cv2.THRESH_BINARY
 
                 center = [x, y]
                 startDist = np.linalg.norm(
@@ -410,30 +418,26 @@ class RRT():
         contours, _ = cv2.findContours(
             image_flipped, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
 
-        # print(f"contours: {contours}")
-        # print(f"contours: {contours[0][:,0,:]}")
-
         contours = contours[0][:, 0, :]
-        # contours = np.append(contours, contours[-1])
-        # contours = np.append(contours, contours[0])
 
         contours = np.vstack([contours, contours[0]])
         return contours, image_flipped
 
-    def rrt_algo(self):
-        x, y, lines = [], [], []
+    def initialize_mode_one(self):
 
-        if not self.mode:
-            obstacles, image_scaled = self.load_image_binary()
-            qInit = self.randomStart(image_scaled)
-            qGoal = self.randomGoal(image_scaled)
+        qInit = self.randomStart()
+        qGoal = self.randomGoal()
 
-        else:
-            qInit = self.randomStart()
-            qGoal = self.randomGoal()
+        fig, ax, plot, line_segments = self.draw_plots(qGoal)
 
-        if self.mode:
-            obstacles = self.randomObstacles(ax, qInit, qGoal)
+        obstacles = self.randomObstacles(ax, qInit, qGoal)
+
+        return qInit, qGoal, obstacles, fig, plot, line_segments
+
+    def initialize_mode_zero(self, lines):
+        obstacles, image_scaled = self.load_image_binary()
+        qInit = self.randomStart(image_scaled)
+        qGoal = self.randomGoal(image_scaled)
 
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
 
@@ -448,6 +452,17 @@ class RRT():
             fig.canvas.draw_idle()  # update the canvas
 
         ax.imshow(image_scaled, cmap='gray', origin='upper')
+
+        return qInit, qGoal, obstacles, fig, plot, line_segments
+
+    def rrt_algo(self):
+        x, y, lines = [], [], []
+
+        if self.mode:
+            qInit, qGoal, obstacles, fig, plot, line_segments = self.initialize_mode_one()
+        else:
+            qInit, qGoal, obstacles, fig, plot, line_segments = self.initialize_mode_zero(
+                lines)
 
         self.G.update({qInit: []})
         for i in range(self.K):
@@ -486,9 +501,25 @@ class RRT():
             plt.pause(0.001)
 
 
+def initialize_arg_parse():
+    parser = argparse.ArgumentParser(
+        description='Process arguements to decide the type of obstacle the RRT\
+            algorithm will have to search around, and in some cases the number\
+                of obstacles.')
+    parser.add_argument('-m', '--mode', metavar='N', type=int,
+                        default=0, help='an integer to define the mode')
+    parser.add_argument('-o', '--obstacles', metavar='O', type=int,
+                        default=20, help='an integer to define the number of obstacles')
+
+    return parser
+
+
 def main():
 
-    rrt = RRT(int(sys.argv[1]), int(sys.argv[2]))
+    parser = initialize_arg_parse()
+    args = parser.parse_args()
+
+    rrt = RRT(args.mode, args.obstacles)
 
     try:
         rrt.rrt_algo()
