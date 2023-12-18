@@ -14,7 +14,7 @@ class RRT():
         self.G = {}  # this is the graph that will hold all the nodes
         self.delta = 3  # this is the incremental distance
         self.D = (200, 200)  # this is the domain
-        self.K = 1000
+        self.K = 10000
 
         self.mode = mode
         self.num_obs = num_obs
@@ -115,17 +115,22 @@ class RRT():
 
         # adding the new point, and the point it was
         lines.append([qNear, qNew])
-        # closest to, to the lines list so that a line can be drawn on the plot
-        line_segments.set_segments(lines)  # adding the new line to the plot
+
+        # adding the new line to the plot
+        line_segments.set_segments(lines)
+
         # add the x coordinate of the new point to the x coordinate list
         x.append(qNew[0])
+
         # add the y coordinate of the new point to the y coordinate list
         y.append(qNew[1])
-        plot.set_offsets(
-            np.column_stack([x, y])
-        )  # add the new x and y coordiantes to the plot
 
-        fig.canvas.draw_idle()  # update the canvas
+        # add the new x and y coordiantes to the plot
+        plot.set_offsets(
+            np.column_stack([x, y]))
+
+        # update the canvas
+        fig.canvas.draw_idle()
 
     def test_slope(self, point1, point2):
         """
@@ -315,7 +320,7 @@ class RRT():
                 if min(qThere[0], qHere[0]) <= round(x, self.precision) <= max(qThere[0], qHere[0])\
                     and min(qThere[1], qHere[1]) <= round(y, self.precision) <= max(qThere[1], qHere[1])\
                         and min(obstacles[i][0], obstacles[i-1][0]) <= round(x, self.precision) <= max(obstacles[i][0], obstacles[i-1][0])\
-                    and min(obstacles[i][1], obstacles[i-1][1]) <= round(y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1]):
+                and min(obstacles[i][1], obstacles[i-1][1]) <= round(y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1]):
 
                     # print("NORMAL COLLISION")
                     # print(f"qHere: {qHere}")
@@ -429,39 +434,47 @@ class RRT():
 
         obstacles = self.randomObstacles(ax, qInit, qGoal)
 
-        return qInit, qGoal, obstacles, fig, plot, line_segments
+        return qInit, qGoal, obstacles, fig, ax, plot, line_segments
 
-    def initialize_mode_zero(self, lines):
+    def initialize_mode_zero(self):
         obstacles, image_scaled = self.load_image_binary()
         qInit = self.randomStart(image_scaled)
         qGoal = self.randomGoal(image_scaled)
 
         fig, ax, plot, line_segments = self.draw_plots(qGoal)
 
-        for i in range(1, len(obstacles)):
-
-            lines.append([(obstacles[i][0], obstacles[i][1]),
-                          (obstacles[i-1][0], obstacles[i-1][1])])
-            # closest to, to the lines list so that a line can be drawn on the plot
-            # adding the new line to the plot
-            line_segments.set_segments(lines)
-
-            fig.canvas.draw_idle()  # update the canvas
-
         ax.imshow(image_scaled, cmap='gray', origin='upper')
 
-        return qInit, qGoal, obstacles, image_scaled, fig, plot, line_segments
+        return qInit, qGoal, obstacles, image_scaled, fig, ax, plot, line_segments
+
+    def draw_goal_path(self, qGoal, ax, fig):
+
+        key = qGoal
+
+        lines = []
+
+        while self.G[key] is not None:
+
+            point1 = key
+            point2 = self.G[key]
+
+            lines.append([point1, point2])
+
+            key = point2
+
+        line_segments = LineCollection(lines, colors="red", linestyle="solid")
+        ax.add_collection(line_segments)
+        fig.canvas.draw_idle()
 
     def rrt_algo(self):
         x, y, lines = [], [], []
 
         if self.mode:
-            qInit, qGoal, obstacles, fig, plot, line_segments = self.initialize_mode_one()
+            qInit, qGoal, obstacles, fig, ax, plot, line_segments = self.initialize_mode_one()
         else:
-            qInit, qGoal, obstacles, image_scaled, fig, plot, line_segments = self.initialize_mode_zero(
-                lines)
+            qInit, qGoal, obstacles, image_scaled, fig, ax, plot, line_segments = self.initialize_mode_zero()
 
-        self.G.update({qInit: []})
+        self.G.update({qInit: None})
         for i in range(self.K):
 
             qRand = self.RANDOM_CONFIGURATION()
@@ -479,7 +492,9 @@ class RRT():
 
             if not collision:
 
-                self.G.update({qNew: [qNear]})
+                self.G.update({qNew: qNear})
+
+                # add the line between qNear and qNew to the plot
                 self.update_plots(x, y, line_segments,
                                   lines, plot, fig, qNew, qNear)
 
@@ -488,11 +503,13 @@ class RRT():
             )
             if not goalCollision:
 
-                self.G.update({qNew: [qNear]})
-                self.update_plots(x, y, line_segments,
-                                  lines, plot, fig, qNew, qNear)
+                self.G.update({qGoal: qNew})
+
+                # add the line between qNew and qGoal to the plot
                 self.update_plots(x, y, line_segments,
                                   lines, plot, fig, qGoal, qNew)
+
+                self.draw_goal_path(qGoal, ax, fig)
 
                 return self.G
 
@@ -526,8 +543,6 @@ def main():
 
     plt.ioff()  # turn off interactive mode.
     plt.show()
-
-    # add some kind of dynamic element??
 
 
 if __name__ == "__main__":
