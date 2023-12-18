@@ -28,6 +28,11 @@ class RRT():
         Args:
         ----
         D (int tuple): the domain space.
+
+        Returns:
+        -------
+        qRand (float tuple): a random position in the domain space.
+
         '''
         rng = np.random.default_rng()
 
@@ -47,6 +52,7 @@ class RRT():
         ----
         qRand (list): a random position in the domain.
         G (list): the list of nodes in the domain.
+
         '''
         # longest possible distance
         distance = np.linalg.norm(np.asarray(self.D) - np.asarray((0, 0)))
@@ -120,7 +126,6 @@ class RRT():
         )  # add the new x and y coordiantes to the plot
 
         fig.canvas.draw_idle()  # update the canvas
-        # plt.pause(0.001)  # pause momentarily so the plot doesn't freeze up
 
     def test_slope(self, point1, point2):
         """
@@ -161,7 +166,7 @@ class RRT():
 
         qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
 
-        print(f"flag: {flag}")
+        # print(f"flag: {flag}")
 
         if flag:
 
@@ -237,18 +242,18 @@ class RRT():
                         return True
 
                     else:
-                        print("COLLISOIN FALSE")
-                        print("OBSTACLE STRAIGHT UP")
-                        print(f"qHere: {qHere}")
-                        print(f"qThere: {qThere}")
-                        print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        print(f"obstacles[i]: {obstacles[i]}")
-                        print("\n")
+                        #     print("COLLISOIN FALSE")
+                        #     print("OBSTACLE STRAIGHT UP")
+                        #     print(f"qHere: {qHere}")
+                        #     print(f"qThere: {qThere}")
+                        #     print(f"obstacles[i-1]: {obstacles[i-1]}")
+                        #     print(f"obstacles[i]: {obstacles[i]}")
+                        #     print("\n")
 
-                        print(f"obstacle_y: {obstacle_y}")
-                        print(f"qHere[1]: {qHere[1]}")
-                        print(f"qThere[1]: {qThere[1]}")
-                        print("\n\n")
+                        #     print(f"obstacle_y: {obstacle_y}")
+                        #     print(f"qHere[1]: {qHere[1]}")
+                        #     print(f"qThere[1]: {qThere[1]}")
+                        #     print("\n\n")
                         continue
 
                 elif not point_slope_valid:
@@ -325,17 +330,17 @@ class RRT():
 
                     return True
 
-                else:
-                    print("no NORMAL COLLISION")
-                    print(f"qHere: {qHere}")
-                    print(f"qThere: {qThere}")
-                    print(f"obstacles[i-1]: {obstacles[i-1]}")
-                    print(f"obstacles[i]: {obstacles[i]}")
-                    print("\n\n")
+                # else:
+                #     print("no NORMAL COLLISION")
+                #     print(f"qHere: {qHere}")
+                #     print(f"qThere: {qThere}")
+                #     print(f"obstacles[i-1]: {obstacles[i-1]}")
+                #     print(f"obstacles[i]: {obstacles[i]}")
+                #     print("\n\n")
 
-                    print(f"x: {x}")
-                    print(f"y: {y}")
-                    print("\n")
+                #     print(f"x: {x}")
+                #     print(f"y: {y}")
+                #     print("\n")
 
             return False
 
@@ -348,7 +353,7 @@ class RRT():
         if self.mode:
             x, y = rng.integers(20, self.D[0] - 20, size=2)
         else:
-            while image[y][x] == 0:
+            while image[y, x] == 0:
                 x, y = rng.integers(20, self.D[0] - 20, size=2)
 
         qInit = (x, y)
@@ -363,7 +368,7 @@ class RRT():
         if self.mode:
             x, y = rng.integers(20, self.D[0] - 20, size=2)
         else:
-            while image[y][x] == 0:
+            while image[y, x] == 0:
                 x, y = rng.integers(20, self.D[0] - 20, size=2)
 
         qGoal = (x, y)
@@ -371,20 +376,12 @@ class RRT():
         return qGoal
 
     def randomObstacles(self, ax, qInit, qGoal):
-        # add some circles
+
         rng = np.random.default_rng()  # add the random number generator
 
         numObstacles = self.num_obs
         circles = {}
         obstacles = {}
-
-        # # new
-        # for i in range(numObstacles):
-        #     r = rng.integers(0, 20)
-        #     x = rng.integers(20, self.D[0] - 20)
-        #     y = rng.integers(20, self.D[1] - 20)
-
-        #     obstacles.append([x, y, r])
 
         for i in range(numObstacles):
             successful = False
@@ -453,7 +450,7 @@ class RRT():
 
         ax.imshow(image_scaled, cmap='gray', origin='upper')
 
-        return qInit, qGoal, obstacles, fig, plot, line_segments
+        return qInit, qGoal, obstacles, image_scaled, fig, plot, line_segments
 
     def rrt_algo(self):
         x, y, lines = [], [], []
@@ -461,20 +458,31 @@ class RRT():
         if self.mode:
             qInit, qGoal, obstacles, fig, plot, line_segments = self.initialize_mode_one()
         else:
-            qInit, qGoal, obstacles, fig, plot, line_segments = self.initialize_mode_zero(
+            qInit, qGoal, obstacles, image_scaled, fig, plot, line_segments = self.initialize_mode_zero(
                 lines)
 
         self.G.update({qInit: []})
         for i in range(self.K):
 
-            # successful = False
-            # while not successful:
-
             qRand = self.RANDOM_CONFIGURATION()
             qNear = self.NEAREST_VERTEX(qRand)
             qNew = self.NEW_CONFIGURATION(qNear, qRand)
 
-            print("goal collision")
+            if self.mode:
+                collision = self.checkCollision(
+                    qNew, qNear, obstacles, self.mode
+                )
+            else:
+                collision = False
+                if image_scaled is not None and image_scaled[round(qNew[1]), round(qNew[0])] == 0:
+                    collision = True
+
+            if not collision:
+
+                self.G.update({qNew: [qNear]})
+                self.update_plots(x, y, line_segments,
+                                  lines, plot, fig, qNew, qNear)
+
             goalCollision = self.checkCollision(
                 qGoal, qNew, obstacles, self.mode
             )
@@ -487,16 +495,6 @@ class RRT():
                                   lines, plot, fig, qGoal, qNew)
 
                 return self.G
-            print("local collision")
-            collision = self.checkCollision(
-                qNew, qNear, obstacles, self.mode
-            )
-
-            if not collision:
-
-                self.G.update({qNew: [qNear]})
-                self.update_plots(x, y, line_segments,
-                                  lines, plot, fig, qNew, qNear)
 
             plt.pause(0.001)
 
