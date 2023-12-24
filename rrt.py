@@ -5,8 +5,9 @@ import numpy as np
 import sympy as sym
 import cv2
 
-import sys
 import argparse
+
+import time
 
 
 class RRT():
@@ -93,7 +94,7 @@ class RRT():
         # some of their attributes.
 
         plt.ion()  # turn on interactive mode
-        fig, ax = plt.subplots()  # create the sub plot
+        fig, ax = plt.subplots(figsize=(16, 16))  # create the sub plot
 
         plot = ax.scatter([], [], c="blue", s=1)  # create the scatter plot
         goal = ax.scatter([qGoal[0]], [qGoal[1]], c="red", s=3)
@@ -105,6 +106,7 @@ class RRT():
         ax.set_ylim(0, self.D[1])
 
         plt.draw()
+        plt.show()
 
         return fig, ax, plot, line_segments
 
@@ -171,8 +173,6 @@ class RRT():
 
         qDistance = np.linalg.norm(np.asarray(qThere) - np.asarray(qHere))
 
-        # print(f"flag: {flag}")
-
         if flag:
 
             for key in obstacles:
@@ -231,34 +231,11 @@ class RRT():
 
                     if min(obstacles[i][1], obstacles[i-1][1]) <= round(obstacle_y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1])\
                             and min(qThere[1], qHere[1]) <= round(obstacle_y, self.precision) <= max(qThere[1], qHere[1]):
-                        # print("COLLISOIN TRUE")
-                        # print("OBSTACLE STRAIGHT UP")
-                        # print(f"qHere: {qHere}")
-                        # print(f"qThere: {qThere}")
-                        # print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        # print(f"obstacles[i]: {obstacles[i]}")
-                        # print("\n")
-
-                        # print(f"obstacle_y: {obstacle_y}")
-                        # print(f"qHere[1]: {qHere[1]}")
-                        # print(f"qThere[1]: {qThere[1]}")
-                        # print("\n\n")
 
                         return True
 
                     else:
-                        #     print("COLLISOIN FALSE")
-                        #     print("OBSTACLE STRAIGHT UP")
-                        #     print(f"qHere: {qHere}")
-                        #     print(f"qThere: {qThere}")
-                        #     print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        #     print(f"obstacles[i]: {obstacles[i]}")
-                        #     print("\n")
 
-                        #     print(f"obstacle_y: {obstacle_y}")
-                        #     print(f"qHere[1]: {qHere[1]}")
-                        #     print(f"qThere[1]: {qThere[1]}")
-                        #     print("\n\n")
                         continue
 
                 elif not point_slope_valid:
@@ -276,17 +253,6 @@ class RRT():
                     if min(obstacles[i][1], obstacles[i-1][1]) <= round(qy, self.precision) <= max(obstacles[i][1], obstacles[i-1][1])\
                             and min(qThere[1], qHere[1]) <= round(qy, self.precision) <= max(qThere[1], qHere[1]):
 
-                        # print("piont STRAIGHT UP")
-                        # print(f"qHere: {qHere}")
-                        # print(f"qThere: {qThere}")
-                        # print(f"obstacles[i-1]: {obstacles[i-1]}")
-                        # print(f"obstacles[i]: {obstacles[i]}")
-                        # print("\n")
-
-                        # print(f"qy: {qy}")
-                        # print(f"qHere[i][1]: {qHere[i][1]}")
-                        # print(f"qThere[i][1]: {qThere[i][1]}")
-                        # print("\n\n")
                         return True
 
                     else:
@@ -320,32 +286,9 @@ class RRT():
                 if min(qThere[0], qHere[0]) <= round(x, self.precision) <= max(qThere[0], qHere[0])\
                     and min(qThere[1], qHere[1]) <= round(y, self.precision) <= max(qThere[1], qHere[1])\
                         and min(obstacles[i][0], obstacles[i-1][0]) <= round(x, self.precision) <= max(obstacles[i][0], obstacles[i-1][0])\
-                and min(obstacles[i][1], obstacles[i-1][1]) <= round(y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1]):
-
-                    # print("NORMAL COLLISION")
-                    # print(f"qHere: {qHere}")
-                    # print(f"qThere: {qThere}")
-                    # print(f"obstacles[i-1]: {obstacles[i-1]}")
-                    # print(f"obstacles[i]: {obstacles[i]}")
-                    # print("\n\n")
-
-                    # print(f"x: {x}")
-                    # print(f"y: {y}")
-                    # print("\n")
+                    and min(obstacles[i][1], obstacles[i-1][1]) <= round(y, self.precision) <= max(obstacles[i][1], obstacles[i-1][1]):
 
                     return True
-
-                # else:
-                #     print("no NORMAL COLLISION")
-                #     print(f"qHere: {qHere}")
-                #     print(f"qThere: {qThere}")
-                #     print(f"obstacles[i-1]: {obstacles[i-1]}")
-                #     print(f"obstacles[i]: {obstacles[i]}")
-                #     print("\n\n")
-
-                #     print(f"x: {x}")
-                #     print(f"y: {y}")
-                #     print("\n")
 
             return False
 
@@ -512,6 +455,9 @@ class RRT():
                 self.draw_goal_path(qGoal, ax, fig)
 
                 return self.G
+
+            if i == 5:
+                time.sleep(20)
 
             plt.pause(0.001)
 
